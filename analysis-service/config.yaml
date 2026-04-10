@@ -1,0 +1,220 @@
+# =============================================================
+# 피싱 이메일 탐지 프로젝트 설정 파일
+# =============================================================
+
+# --- 경로 설정 ---
+paths:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  models_dir: "models/saved"
+  notebooks_dir: "notebooks"
+  reports_dir: "reports"
+
+# --- 데이터 설정 ---
+data:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  random_seed: 42
+  max_samples_per_class: null    # null = 전체 데이터 사용
+  text_max_length: 5000          # 본문 최대 길이 (문자 기준)
+
+# --- 레이블 설정 ---
+labels:
+  # binary classification
+  binary:
+    ham: 0
+    threat: 1           # spam + phishing + fraud 통합
+  # multi-class (Phase 2)
+  multiclass:
+    ham: 0
+    spam: 1
+    phishing: 2
+    fraud: 3
+
+# --- 텍스트 피처 설정 ---
+tfidf:
+  max_features: 50000
+  ngram_range: [1, 2]   # unigram + bigram
+  min_df: 2             # 최소 문서 빈도
+  max_df: 0.95          # 최대 문서 비율 (너무 흔한 단어 제거)
+  sublinear_tf: true
+
+# --- 룰 기반 피처 설정 ---
+rule_features:
+  # 긴급 표현 키워드 (영문)
+  urgency_keywords_en:
+    - "urgent"
+    - "immediate action"
+    - "account suspended"
+    - "verify your account"
+    - "click here immediately"
+    - "limited time"
+    - "expires today"
+    - "final notice"
+    - "act now"
+    - "your account will be"
+  # 긴급 표현 키워드 (한국어)
+  urgency_keywords_ko:
+    - "즉시"
+    - "긴급"
+    - "계정이 정지"
+    - "지금 바로"
+    - "오늘 안에"
+    - "마지막 경고"
+    - "즉각 조치"
+  # 개인정보 요구 키워드
+  credential_keywords_en:
+    - "password"
+    - "credit card"
+    - "social security"
+    - "bank account"
+    - "confirm your identity"
+    - "verify your information"
+    - "enter your details"
+    - "login credentials"
+  credential_keywords_ko:
+    - "비밀번호"
+    - "계좌번호"
+    - "주민번호"
+    - "개인정보 입력"
+    - "카드번호"
+  # 금전 요구 키워드
+  money_keywords_en:
+    - "million dollars"
+    - "wire transfer"
+    - "western union"
+    - "money transfer"
+    - "inheritance"
+    - "lottery winner"
+    - "unclaimed funds"
+  # 공포/협박 키워드
+  threat_keywords_en:
+    - "legal action"
+    - "arrested"
+    - "penalty"
+    - "lawsuit"
+    - "hacked your"
+    - "we have your"
+    - "blackmail"
+  # 일반적/비개인화 인사말
+  generic_greetings_en:
+    - "dear customer"
+    - "dear user"
+    - "dear client"
+    - "valued customer"
+    - "dear member"
+  generic_greetings_ko:
+    - "고객님"
+    - "회원님"
+    - "사용자님"
+  # 경품/보상/과장 제안 키워드
+  reward_keywords_en:
+    - "claim your prize"
+    - "lottery winner"
+    - "reward"
+    - "bonus"
+    - "exclusive offer"
+    - "too good to be true"
+  reward_keywords_ko:
+    - "당첨"
+    - "경품"
+    - "보상"
+    - "혜택"
+  # 비정상 결제 수단 키워드
+  payment_keywords_en:
+    - "gift card"
+    - "bitcoin"
+    - "crypto"
+    - "wire transfer"
+    - "bank transfer"
+    - "western union"
+  payment_keywords_ko:
+    - "상품권"
+    - "기프트카드"
+    - "비트코인"
+    - "가상화폐"
+    - "송금"
+    - "계좌이체"
+  # 첨부파일 유도 키워드
+  attachment_keywords_en:
+    - "attached invoice"
+    - "see attached"
+    - "open attachment"
+    - "attached file"
+    - "download the attachment"
+  attachment_keywords_ko:
+    - "첨부파일"
+    - "첨부 문서"
+    - "첨부된 파일"
+    - "붙임파일"
+  # 인보이스/결제/급여/HR 유도 키워드
+  business_lure_keywords_en:
+    - "invoice"
+    - "payment"
+    - "payroll"
+    - "hr"
+    - "human resources"
+    - "purchase order"
+    - "salary"
+  business_lure_keywords_ko:
+    - "세금계산서"
+    - "청구서"
+    - "급여"
+    - "인사팀"
+    - "결제"
+    - "구매 요청"
+  # 수상한 도메인 TLD 목록
+  suspicious_tlds:
+    - ".tk"
+    - ".ml"
+    - ".ga"
+    - ".cf"
+    - ".gq"
+    - ".xyz"
+    - ".top"
+    - ".click"
+    - ".download"
+    - ".zip"
+
+# --- 모델 설정 ---
+models:
+  random_forest:
+    n_estimators: 200
+    max_depth: 20
+    min_samples_split: 5
+    random_state: 42
+    n_jobs: -1
+    class_weight: "balanced"
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    use_label_encoder: false
+    eval_metric: "logloss"
+    random_state: 42
+    scale_pos_weight: 1   # 불균형 처리 시 조정
+
+# --- 학습 데이터 증강 설정 ---
+augmentation:
+  enabled: true
+  threat_sample_ratio: 0.35   # 위협 샘플 중 증강 대상 비율
+  variants_per_sample: 1      # 샘플당 생성 변형 수
+  random_seed: 42
+
+# --- 평가 설정 ---
+evaluation:
+  primary_metric: "f1"       # 주요 평가지표
+  threshold: 0.5             # 분류 임계값 (Recall 우선이면 낮춤)
+  cv_folds: 5
+
+# --- Streamlit 앱 설정 ---
+app:
+  title: "피싱 이메일 탐지 시스템"
+  model_to_use: "xgboost"    # "random_forest" 또는 "xgboost"
+  show_shap: true
+  show_rule_explanation: true
+  show_keyword_highlight: true
+  confidence_threshold_display: 0.5

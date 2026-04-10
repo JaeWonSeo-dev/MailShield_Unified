@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MailShield</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1>MailShield</h1>
+    <p class="sub">로컬 분석 서비스와 연결된 브라우저 피싱 탐지 확장</p>
+
+    <label class="label" for="apiUrl">분석 API 주소</label>
+    <input id="apiUrl" type="text" value="http://127.0.0.1:8765/analyze" />
+
+    <div class="actions">
+      <button id="saveBtn">저장</button>
+      <button id="testBtn" class="secondary">연결 확인</button>
+    </div>
+
+    <div id="status" class="status idle">대기 중</div>
+
+    <section class="tips">
+      <strong>빠른 시작</strong>
+      <ol>
+        <li><code>start-analysis.ps1</code> 실행</li>
+        <li>Gmail 또는 Outlook Web 열기</li>
+        <li>메일을 클릭하면 자동 분석</li>
+      </ol>
+    </section>
+  </main>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+#mailshield-overlay {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2147483647;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.mailshield-card {
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  background: rgba(18, 20, 27, 0.96);
+  color: #f4f7fb;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.mailshield-safe { border-left: 5px solid #2fbf71; }
+.mailshield-caution { border-left: 5px solid #ffb020; }
+.mailshield-suspicious { border-left: 5px solid #ff6b35; }
+.mailshield-high-risk { border-left: 5px solid #e63946; }
+
+.mailshield-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mailshield-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mailshield-subtitle {
+  font-size: 12px;
+  color: #b8c0cc;
+}
+
+.mailshield-badge {
+  font-size: 20px;
+}
+
+.mailshield-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mailshield-btn {
+  background: rgba(255,255,255,0.08);
+  color: #f4f7fb;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mailshield-btn-primary {
+  background: #2563eb;
+  border-color: #3b82f6;
+}
+
+.mailshield-btn:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+.mailshield-btn-primary:hover {
+  background: #3b82f6;
+}
+
+.mailshield-section {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
+.mailshield-mini {
+  margin-top: 4px;
+  color: #c7d1de;
+  word-break: break-word;
+}
+
+.mailshield-section ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.mailshield-section li {
+  margin-bottom: 6px;
+}
+
+.mailshield-debug {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 10px;
+}
+
+.mailshield-debug summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #b8c0cc;
+}
+
+.mailshield-debug pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.4;
+  max-height: 220px;
+  overflow: auto;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+}
