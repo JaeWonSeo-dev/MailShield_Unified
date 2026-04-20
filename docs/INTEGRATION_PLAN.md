@@ -1,46 +1,52 @@
 # Integration Plan
 
+## 최종 제품 정의
+최종 제품은 **Chrome Extension**이다.
+
+이 프로젝트는 별도 웹페이지 기반 피싱 분석 서비스를 만드는 것이 아니라,
+**Mail Shield의 메일 수집/오버레이 흐름에 PshingMail Detection의 학습 모델을 연결하는 것**이 목적이다.
+
 ## 목표 아키텍처
 
 ```text
 [Gmail / Outlook Web]
         ↓
-[Browser Extension]
+[Mail Shield 기반 Chrome Extension]
   - content.js
   - background.js
   - overlay.js
         ↓ HTTP POST
-[Local Analysis Service]
+[PshingMail Detection 기반 Local Analysis Service]
   - app/ml_api.py
   - src/features/rule_features.py
   - src/explainability/rule_explainer.py
   - saved models
         ↓
-[Overlay Result]
+[Extension Overlay Result]
 ```
+
+## 현재 결정사항
+- **수집/UI는 Mail Shield 기준 유지**
+- **탐지 모델/설명 엔진은 PshingMail Detection 기준 유지**
+- 연결 방식은 로컬 HTTP API (`/analyze`) 사용
+- Streamlit 같은 웹 데모 경로는 최종 사용자 경로로 보지 않음
 
 ## 단계별 계획
 
-### 1. 현재 통합
-- Mail_Shield의 extension 폴더를 통합 프로젝트로 이관
-- PshingMail_Detection의 분석 서비스 코드를 통합 프로젝트로 이관
-- 문서로 역할 분리와 책임을 명확히 함
+### 1. 이미 완료된 작업
+- Mail Shield의 extension 폴더 통합
+- PshingMail Detection의 분석 서비스 코드 통합
+- 확장과 분석 서비스 간 공통 JSON 계약 정리
+- 확장에서 링크/첨부/본문 문맥까지 분석 서비스로 전달하도록 확장
 
-### 2. 다음 정리 작업
+### 2. 현재 정리 작업
 - extension 내부 중복 rule engine을 최소 fallback 용도로 축소
-- analysis-service의 응답 포맷을 shared 계약에 맞춰 고정
-- run script 추가 (`start-analysis`, `start-dev` 등)
-- 확장 팝업에서 API 주소와 헬스체크를 직접 확인 가능하게 개선
-- `/health` 엔드포인트로 서비스 상태 점검 가능하게 개선
+- analysis-service의 응답 포맷을 shared 계약에 맞춰 유지
+- 확장 팝업에서 API 주소와 헬스체크를 직접 확인 가능하게 유지
+- 문서에서 웹페이지 제품처럼 보이는 표현 제거
 
-### 3. 이후 확장
-- Outlook/Gmail 헤더 수집 강화
-- 도메인 평판, SPF/DKIM/DMARC 연계
-- 설명 결과를 레벨/카테고리별로 구조화
-- 데스크톱 앱 또는 관리 UI 추가 가능
-
-## 현재 의사결정
-- 코어 분석 엔진은 Python 기반으로 유지
-- 브라우저 확장은 JS로 유지
-- 두 시스템은 HTTP API 계약으로 연결
-- 중장기적으로는 shared schema를 코드 생성 또는 JSON schema로 고정하는 것이 바람직함
+### 3. 이후 우선 작업
+- Gmail/Outlook 헤더 수집 강화
+- 실제 피싱 메일 샘플 기반 회귀 테스트 추가
+- 확장 UI에서 위험 이유를 더 사용자 친화적으로 노출
+- 필요 시 레거시 데모 파일 정리
