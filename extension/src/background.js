@@ -52,10 +52,20 @@ async function analyzeViaMlApi(context) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      provider: context.provider || '',
       sender: context.senderEmail || '',
+      sender_name: context.senderName || '',
       reply_to: context.replyTo || '',
       subject: context.subject || '',
       body: context.fullText || context.bodySnippet || '',
+      body_snippet: context.bodySnippet || '',
+      links: (context.links || []).map((link) => ({
+        href: link?.href || '',
+        text: link?.text || '',
+      })).filter((link) => link.href),
+      attachments: context.attachments || [],
+      source_url: context.sourceUrl || '',
+      coverage: context.coverage || {},
     }),
   });
 

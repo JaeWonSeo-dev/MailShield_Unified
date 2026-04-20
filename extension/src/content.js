@@ -290,7 +290,14 @@ function analyzeMailContext(context) {
   if (hasShortenedUrl) reasons.push('단축 URL이 포함되어 최종 접속 주소 확인이 필요합니다.');
   if ((context.coverage?.textLength || 0) < 200) reasons.push('수집된 본문 길이가 짧아 분석 신뢰도가 낮을 수 있습니다.');
 
-  return { score: probability, level, reasons: dedupe(reasons).slice(0, 6), mode: 'rule-fallback' };
+  return {
+    label: probability >= 50 ? 1 : 0,
+    verdict: probability >= 50 ? 'phishing' : 'legit',
+    score: probability,
+    level,
+    reasons: dedupe(reasons).slice(0, 6),
+    mode: 'rule-fallback'
+  };
 }
 
 function normalizeUrlsFromContext(context) {
@@ -375,12 +382,20 @@ async function runAnalysis({ force = false } = {}) {
 
 function mergeResults(local, remote) {
   if (!remote) return local;
+
+  const score = Math.max(local.score ?? 0, remote.score ?? 0);
+  const level = strongerLevel(local.level, remote.level);
+
   return {
-    score: Math.max(local.score, remote.score ?? 0),
-    level: strongerLevel(local.level, remote.level),
+    label: remote.label ?? local.label ?? (score >= 50 ? 1 : 0),
+    verdict: remote.verdict || local.verdict || (score >= 50 ? 'phishing' : 'legit'),
+    score,
+    confidence: Math.max(local.confidence ?? 0, remote.confidence ?? 0, score / 100),
+    level,
     reasons: [...new Set([...(local.reasons || []), ...(remote.reasons || [])])].slice(0, 6),
     mode: remote.mode || local.mode,
     model: remote.model || undefined,
+    rule_features: remote.rule_features || undefined,
   };
 }
 
@@ -400,13 +415,15 @@ function renderOverlay(result, context, options = {}) {
   const badge = badgeFor(result.level);
   const topLinks = (context.links || []).slice(0, 3);
   const attachments = (context.attachments || []).slice(0, 3);
+  const verdict = result.verdict === 'phishing' || result.label === 1 ? '피싱 메일 가능성 높음' : '정상 메일 가능성 높음';
+  const confidence = Math.round((result.confidence ?? (result.score || 0) / 100) * 100);
 
   root.innerHTML = `
     <div class="mailshield-card mailshield-${result.level}">
       <div class="mailshield-header">
         <div>
-          <div class="mailshield-title">MailShield Unified</div>
-          <div class="mailshield-subtitle">${badge.label} · score ${result.score}</div>
+          <div class="mailshield-title">PhishingMail Detection</div>
+          <div class="mailshield-subtitle">${badge.label} · ${verdict} · score ${result.score} · confidence ${confidence}%</div>
         </div>
         <div class="mailshield-badge">${badge.emoji}</div>
       </div>

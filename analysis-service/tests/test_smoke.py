@@ -1,7 +1,13 @@
+import sys
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from app.ml_api import build_input_row, predict_email
 from src.data.augmentation import augment_training_data
 from src.data.preprocessor import preprocess
 from src.explainability.rule_explainer import generate_rule_explanation
@@ -140,6 +146,35 @@ class TestPipelineSmoke(unittest.TestCase):
         self.assertEqual(feats["unusual_payment_request"], 1)
         self.assertEqual(feats["generic_greeting"], 1)
         self.assertGreaterEqual(feats["rule_risk_score"], 4)
+
+    def test_predict_email_accepts_extension_payload(self):
+        payload = {
+            "provider": "gmail",
+            "sender": "security@paypal-check.tk",
+            "sender_name": "PayPal Security",
+            "reply_to": "help@paypal.com",
+            "subject": "Urgent: verify your account",
+            "body": "Click the secure login below and verify your password now.",
+            "body_snippet": "Click the secure login below",
+            "links": [
+                {"href": "http://paypal-check.tk/login", "text": "Verify now"}
+            ],
+            "attachments": ["statement.zip"],
+            "source_url": "https://mail.google.com/mail/u/0/#inbox/demo",
+            "coverage": {"messageCount": 1, "textLength": 88, "linkCount": 1, "attachmentCount": 1},
+        }
+
+        row, feats, urls, attachments = build_input_row(payload)
+        self.assertEqual(row["provider"], "gmail")
+        self.assertEqual(len(urls), 1)
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(feats["has_http_url"], 1)
+
+        result = predict_email(payload)
+        self.assertIn(result["verdict"], {"phishing", "legit"})
+        self.assertIn("confidence", result)
+        self.assertEqual(result["attachment_count"], 1)
+        self.assertEqual(result["provider"], "gmail")
 
     def test_text_features_fit_transform(self):
         base_df = pd.DataFrame([
