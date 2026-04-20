@@ -24,7 +24,7 @@
         "https://outlook.office.com/*",
         "https://outlook.office365.com/*"
       ],
-      "js": ["src/content.js"],
+      "js": ["src/risk-engine.js", "src/content.js"],
       "css": ["src/overlay.css"],
       "run_at": "document_idle"
     }

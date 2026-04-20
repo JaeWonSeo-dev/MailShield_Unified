@@ -74,7 +74,7 @@ const malwareLurePatterns = [
 
 const suspiciousTlds = [".tk", ".ml", ".ga", ".cf", ".gq", ".xyz", ".top", ".click", ".zip"];
 
-export function analyzeMailContext(context) {
+function analyzeMailContext(context) {
   const sender = context.senderEmail || "";
   const replyTo = context.replyTo || "";
   const subject = context.subject || "";
@@ -211,3 +211,7 @@ function countPatternMatches(text, patterns) {
 function dedupe(list) {
   return [...new Set(list)];
 }
+
+globalThis.MailShieldRiskEngine = {
+  analyzeMailContext,
+};

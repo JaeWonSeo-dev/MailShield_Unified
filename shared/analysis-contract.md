@@ -78,7 +78,7 @@
 - `urls`: 실제 분석에 사용된 링크 목록
 - `attachment_count`: 분석 시 반영된 첨부 개수
 - `provider`: 분석 대상 메일 서비스
-- `mode`: `ml-api` 또는 `rule-api`
+- `mode`: `ml-api`, `rule-api`, 또는 확장 내부 최소 안전망인 `rule-fallback`
 - `model`: 사용된 모델명
 
 ## 3. 레벨 기준
