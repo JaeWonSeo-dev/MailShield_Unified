@@ -8,4 +8,9 @@ if (-not (Test-Path .venv)) {
 $python = Join-Path $PWD '.venv\Scripts\python.exe'
 & $python -m pip install --upgrade pip
 & $python -m pip install -r requirements.txt
+
+Write-Host "[PhishingMail Detection] starting analysis service..." -ForegroundColor Cyan
+Write-Host "health: http://127.0.0.1:8765/health" -ForegroundColor DarkGray
+Write-Host "analyze: http://127.0.0.1:8765/analyze" -ForegroundColor DarkGray
+
 & $python app/ml_api.py

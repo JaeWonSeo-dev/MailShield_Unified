@@ -27,7 +27,7 @@ testBtn.addEventListener('click', async () => {
     const response = await fetch(healthUrl, { method: 'GET' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
-    setStatus('ok', `연결 성공 · model=${payload.model || 'unknown'} · ready=${payload.ready}`);
+    setStatus('ok', `연결 성공 · model=${payload.model || 'unknown'} · mode=${payload.mode || 'unknown'} · ready=${payload.ready}`);
   } catch (error) {
     setStatus('err', `연결 실패: ${String(error.message || error)}`);
   }

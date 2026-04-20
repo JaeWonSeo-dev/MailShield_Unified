@@ -1,4 +1,4 @@
-# MailShield Unified
+# PhishingMail Detection (MailShield Unified)
 
 `Mail_Shield`와 `PshingMail_Detection`을 통합한 프로젝트입니다.
 
@@ -65,4 +65,6 @@ python app/ml_api.py
 - 계약 문서/비교 문서 추가 완료
 - 확장 → 분석 서비스 공통 JSON 계약 확장 완료
 - 실시간 분석 결과에 `verdict`, `confidence`, 링크/첨부 기반 입력 반영 완료
-- 다음 단계: 실행 스크립트 정리, 중복 룰 로직 최소화, 실제 메일 데이터로 정확도 검증
+- 확장 브랜딩을 `PhishingMail Detection` 기준으로 통일 시작
+- 실행/테스트 스크립트의 사용 흐름 정리 완료
+- 다음 단계: 중복 룰 로직 최소화, 실제 메일 데이터로 정확도 검증, 패키징 마감

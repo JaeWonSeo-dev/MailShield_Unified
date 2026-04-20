@@ -7,4 +7,5 @@ if (Test-Path .venv\Scripts\python.exe) {
   $python = 'python'
 }
 
+Write-Host "[PhishingMail Detection] running analysis-service tests..." -ForegroundColor Cyan
 & $python -m unittest discover -s tests -p "test_*.py"

@@ -30,7 +30,10 @@
     }
   ],
   "action": {
-    "default_title": "MailShield Unified",
+    "default_title": "PhishingMail Detection",
     "default_popup": "popup.html"
+  }
+}
+ "popup.html"
   }
 }
