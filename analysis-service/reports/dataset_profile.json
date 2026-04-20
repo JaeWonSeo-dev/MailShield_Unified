@@ -1,0 +1,131 @@
+{
+  "dataset_root": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data",
+  "files": {
+    "raw_phishing_email": {
+      "path": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data\\raw\\phishing_kaggle\\phishing_email.csv",
+      "exists": true,
+      "columns": [
+        "text_combined",
+        "label"
+      ],
+      "sample_rows": 2000,
+      "label_distribution_sample": {
+        "0": 2000
+      }
+    },
+    "raw_enron": {
+      "path": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data\\raw\\enron\\emails.csv",
+      "exists": true,
+      "columns": [
+        "file",
+        "message"
+      ],
+      "sample_rows": 2000
+    },
+    "processed_train": {
+      "path": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data\\processed\\train.csv",
+      "exists": true,
+      "columns": [
+        "source",
+        "subject",
+        "body",
+        "sender",
+        "reply_to",
+        "urls_raw",
+        "label_type",
+        "label",
+        "email_id",
+        "subject_clean",
+        "body_clean",
+        "sender_domain",
+        "reply_to_domain",
+        "urls",
+        "url_count",
+        "has_suspicious_url",
+        "text_combined",
+        "char_count"
+      ],
+      "sample_rows": 2000,
+      "label_distribution_sample": {
+        "1": 1052,
+        "0": 948
+      },
+      "label_type_distribution_sample": {
+        "ham": 948,
+        "phishing": 534,
+        "spam": 477,
+        "fraud": 41
+      }
+    },
+    "processed_val": {
+      "path": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data\\processed\\val.csv",
+      "exists": true,
+      "columns": [
+        "source",
+        "subject",
+        "body",
+        "sender",
+        "reply_to",
+        "urls_raw",
+        "label_type",
+        "label",
+        "email_id",
+        "subject_clean",
+        "body_clean",
+        "sender_domain",
+        "reply_to_domain",
+        "urls",
+        "url_count",
+        "has_suspicious_url",
+        "text_combined",
+        "char_count"
+      ],
+      "sample_rows": 2000,
+      "label_distribution_sample": {
+        "1": 1050,
+        "0": 950
+      },
+      "label_type_distribution_sample": {
+        "ham": 950,
+        "phishing": 542,
+        "spam": 474,
+        "fraud": 34
+      }
+    },
+    "processed_test": {
+      "path": "C:\\Sjw_dev\\Coding\\PshingMail_Detection\\data\\processed\\test.csv",
+      "exists": true,
+      "columns": [
+        "source",
+        "subject",
+        "body",
+        "sender",
+        "reply_to",
+        "urls_raw",
+        "label_type",
+        "label",
+        "email_id",
+        "subject_clean",
+        "body_clean",
+        "sender_domain",
+        "reply_to_domain",
+        "urls",
+        "url_count",
+        "has_suspicious_url",
+        "text_combined",
+        "char_count"
+      ],
+      "sample_rows": 2000,
+      "label_distribution_sample": {
+        "1": 1058,
+        "0": 942
+      },
+      "label_type_distribution_sample": {
+        "ham": 942,
+        "phishing": 554,
+        "spam": 459,
+        "fraud": 45
+      }
+    }
+  }
+}

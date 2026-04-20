@@ -82,8 +82,25 @@ python app/ml_api.py
 - 실행/테스트 스크립트 정리 완료
 - 현재 초점: **웹 UI 제거가 아니라, 확장 중심 구조를 더 명확히 하고 모델 연결을 안정화하는 것**
 
+## 데이터셋 재학습 연결
+네가 실제로 학습에 사용했던 데이터셋은 `C:\Sjw_dev\Coding\PshingMail_Detection\data` 아래에서 확인됐다.
+
+관련 문서:
+- `docs/DATASET_INTEGRATION.md`
+
+빠른 실행:
+```powershell
+cd C:\Sjw_dev\Coding\MailShield_Unified
+./train-analysis-from-dataset.ps1
+```
+
+이 스크립트는:
+1. 외부 데이터셋 구조를 프로파일링하고
+2. 기존 `processed/train.csv`, `val.csv`, `test.csv`를 사용해
+3. 현재 통합 프로젝트의 `analysis-service/models/saved` 모델을 다시 학습한다.
+
 ## 다음 작업 우선순위
-1. 확장 내부 fallback rule 로직 축소
-2. 실제 메일 샘플 기준 정확도 검증
-3. 확장 UX 정리 및 패키징 마감
-4. 필요 시 레거시 웹 데모 코드 정리/제거
+1. 실제 메일 샘플 기준 정확도 검증
+2. 확장 UX 정리 및 패키징 마감
+3. Gmail/Outlook 실환경 검증 루틴 추가
+4. 필요 시 데이터 재전처리/재학습 자동화 세분화
