@@ -196,6 +196,8 @@ models:
     eval_metric: "logloss"
     random_state: 42
     scale_pos_weight: 1   # 불균형 처리 시 조정
+    device: "cpu"        # "cpu" | "cuda"
+    tree_method: "hist"  # GPU 사용 시에도 hist 유지, device=cuda 로 전환
 
 # --- 학습 데이터 증강 설정 ---
 augmentation:

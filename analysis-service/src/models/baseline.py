@@ -139,8 +139,13 @@ def train_xgboost(
     early_stopping_rounds: int = 20,
     random_state: int = 42,
     scale_pos_weight: float = 1.0,
+    device: str = "cpu",
+    tree_method: str = "hist",
 ):
-    logger.info(f"Training XGBoost (max {n_estimators} rounds, early_stopping={early_stopping_rounds})...")
+    logger.info(
+        f"Training XGBoost (max {n_estimators} rounds, early_stopping={early_stopping_rounds}, "
+        f"device={device}, tree_method={tree_method})..."
+    )
 
     if X_val is None or y_val is None:
         raise ValueError("XGBoost early stopping requires X_val and y_val")
@@ -154,7 +159,8 @@ def train_xgboost(
         random_state=random_state,
         scale_pos_weight=scale_pos_weight,
         eval_metric="logloss",
-        tree_method="hist",
+        tree_method=tree_method,
+        device=device,
         early_stopping_rounds=early_stopping_rounds,
         n_jobs=-1,
     )
@@ -249,17 +255,22 @@ if __name__ == "__main__":
     save_metrics(lr_val_metrics, str(reports_dir / "lr_val_metrics.json"))
     save_metrics(lr_test_metrics, str(reports_dir / "lr_test_metrics.json"))
 
+    xgb_cfg = config.get("models", {}).get("xgboost", {})
     xgb_model = train_xgboost(
         X_train,
         y_train,
         X_val,
         y_val,
-        n_estimators=500,
-        max_depth=4,
-        learning_rate=0.05,
+        n_estimators=int(xgb_cfg.get("n_estimators", 500)),
+        max_depth=int(xgb_cfg.get("max_depth", 4)),
+        learning_rate=float(xgb_cfg.get("learning_rate", 0.05)),
+        subsample=float(xgb_cfg.get("subsample", 0.8)),
+        colsample_bytree=float(xgb_cfg.get("colsample_bytree", 0.8)),
         early_stopping_rounds=20,
         random_state=config["data"]["random_seed"],
         scale_pos_weight=auto_scale_pos_weight,
+        device=str(xgb_cfg.get("device", "cpu")),
+        tree_method=str(xgb_cfg.get("tree_method", "hist")),
     )
     xgb_val_metrics = evaluate_model(xgb_model, X_val, y_val, threshold=threshold, model_name="XGBoost [val]")
     xgb_test_metrics = evaluate_model(xgb_model, X_test, y_test, threshold=threshold, model_name="XGBoost [test]")
