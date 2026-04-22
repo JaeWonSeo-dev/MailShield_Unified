@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -57,13 +58,19 @@ def evaluate_model(
         y_pred = model.predict(X)
 
     report_text = classification_report(y, y_pred, target_names=["ham", "threat"], zero_division=0)
+    conf = confusion_matrix(y, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = conf.ravel()
     metrics = {
         "threshold": threshold,
         "accuracy": round(accuracy_score(y, y_pred), 4),
         "f1": round(f1_score(y, y_pred, zero_division=0), 4),
         "precision": round(precision_score(y, y_pred, zero_division=0), 4),
         "recall": round(recall_score(y, y_pred, zero_division=0), 4),
-        "conf_matrix": confusion_matrix(y, y_pred).tolist(),
+        "tp": int(tp),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "conf_matrix": conf.tolist(),
         "classification_report": report_text,
     }
     if y_pred_proba is not None:
@@ -84,6 +91,57 @@ def save_metrics(metrics: Dict[str, Any], output_path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
     logger.info(f"Metrics saved: {path}")
+
+
+def save_results_bundle(summary: Dict[str, Any], results_dir: Path) -> None:
+    results_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    latest_json = results_dir / "latest-summary.json"
+    latest_md = results_dir / "latest-summary.md"
+    archived_json = results_dir / f"training-summary-{timestamp}.json"
+    archived_md = results_dir / f"training-summary-{timestamp}.md"
+
+    markdown_lines = [
+        "# Training Results",
+        "",
+        f"- generated_at: {summary.get('generated_at', '')}",
+        f"- threshold: {summary.get('threshold', '')}",
+        f"- train_neg: {summary.get('class_balance', {}).get('neg', '')}",
+        f"- train_pos: {summary.get('class_balance', {}).get('pos', '')}",
+        f"- scale_pos_weight: {summary.get('class_balance', {}).get('scale_pos_weight', '')}",
+        "",
+    ]
+
+    for model_name, splits in summary.get("models", {}).items():
+        markdown_lines.append(f"## {model_name}")
+        markdown_lines.append("")
+        for split_name, metrics in splits.items():
+            markdown_lines.extend([
+                f"### {split_name}",
+                "",
+                f"- tp: {metrics.get('tp', '')}",
+                f"- tn: {metrics.get('tn', '')}",
+                f"- fp: {metrics.get('fp', '')}",
+                f"- fn: {metrics.get('fn', '')}",
+                f"- f1: {metrics.get('f1', '')}",
+                f"- accuracy: {metrics.get('accuracy', '')}",
+                f"- precision: {metrics.get('precision', '')}",
+                f"- recall: {metrics.get('recall', '')}",
+                f"- roc_auc: {metrics.get('roc_auc', 'N/A')}",
+                "",
+            ])
+
+    for target in (latest_json, archived_json):
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+        logger.info(f"Results summary saved: {target}")
+
+    markdown = "\n".join(markdown_lines)
+    for target in (latest_md, archived_md):
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(markdown)
+        logger.info(f"Results summary saved: {target}")
 
 
 def train_logistic_regression(X_train, y_train, Cs: int = 5, cv: int = 5, max_iter: int = 1000, random_state: int = 42):
@@ -220,6 +278,7 @@ if __name__ == "__main__":
     processed_dir = root / config["paths"]["processed_data_dir"]
     models_dir = root / config["paths"]["models_dir"]
     reports_dir = root / config["paths"].get("reports_dir", "reports")
+    results_dir = root / "results"
     threshold = float(config.get("evaluation", {}).get("threshold", 0.5))
 
     logger.info("Loading processed data...")
@@ -279,6 +338,7 @@ if __name__ == "__main__":
     save_metrics(xgb_test_metrics, str(reports_dir / "xgb_test_metrics.json"))
 
     summary = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
         "threshold": threshold,
         "class_balance": {"neg": neg_count, "pos": pos_count, "scale_pos_weight": auto_scale_pos_weight},
         "models": {
@@ -287,6 +347,7 @@ if __name__ == "__main__":
         },
     }
     save_metrics(summary, str(reports_dir / "training_summary.json"))
+    save_results_bundle(summary, results_dir)
 
     extractor.save(str(models_dir / "feature_extractor.pkl"))
     print("\n모델 학습 완료!")
