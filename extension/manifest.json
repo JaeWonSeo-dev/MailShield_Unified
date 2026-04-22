@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MailShield Unified",
-  "version": "0.2.0",
-  "description": "Unified browser phishing detection for Gmail and Outlook Web with local ML analysis.",
+  "name": "PhishingMail Detection",
+  "version": "0.3.0",
+  "description": "Chrome extension for real-time phishing mail detection in Gmail and Outlook Web with local ML analysis.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://mail.google.com/*",
