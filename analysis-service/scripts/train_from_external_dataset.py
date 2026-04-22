@@ -11,6 +11,17 @@ import yaml
 DEFAULT_DATASET_ROOT = Path(r"C:\Sjw_dev\Coding\PshingMail_Detection\data")
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config.yaml"
+REQUIRED_PROCESSED_FILES = ("train.csv", "val.csv", "test.csv")
+
+
+def validate_processed_dataset(processed_dir: Path) -> None:
+    missing = [name for name in REQUIRED_PROCESSED_FILES if not (processed_dir / name).exists()]
+    if missing:
+        missing_text = ", ".join(missing)
+        raise SystemExit(
+            f"Processed dataset is incomplete: missing {missing_text} in {processed_dir}. "
+            f"Run without --skip-preprocess to regenerate processed splits."
+        )
 
 
 def main() -> None:
@@ -36,6 +47,15 @@ def main() -> None:
     config["paths"]["raw_data_dir"] = str(raw_dir)
     config["paths"]["processed_data_dir"] = str(processed_dir)
 
+    xgb_cfg = config.get("models", {}).get("xgboost", {}) or {}
+    logger.info(
+        "Training preflight | dataset_root=%s | skip_preprocess=%s | xgboost_device=%s | tree_method=%s",
+        dataset_root,
+        args.skip_preprocess,
+        xgb_cfg.get("device", "cpu"),
+        xgb_cfg.get("tree_method", "hist"),
+    )
+
     backup_path = CONFIG_PATH.with_suffix(".yaml.bak")
     shutil.copy2(CONFIG_PATH, backup_path)
 
@@ -46,7 +66,9 @@ def main() -> None:
         if not args.skip_preprocess:
             logger.info("Preprocessing external dataset into processed splits...")
             subprocess.run([sys.executable, str(ROOT / "src" / "data" / "preprocessor.py")], check=True, cwd=str(ROOT))
+            validate_processed_dataset(processed_dir)
         else:
+            validate_processed_dataset(processed_dir)
             logger.info("Skipping preprocessing and using existing processed CSV files")
 
         logger.info("Training models from external dataset...")

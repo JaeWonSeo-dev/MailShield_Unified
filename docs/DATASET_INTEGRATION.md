@@ -74,6 +74,7 @@ cd C:\Sjw_dev\Coding\MailShield_Unified
 ## 현재 기본 동작
 - `--skip-preprocess` 사용 시: 이미 존재하는 `processed/train.csv`, `val.csv`, `test.csv`를 바로 사용
 - 옵션 제거 시: 외부 `raw/`를 다시 읽어 `processed/`를 재생성한 뒤 학습
+- 학습 시작 전 preflight에서 데이터셋 루트, `skip-preprocess` 여부, XGBoost 장치 설정(`cpu`/`cuda`)을 로그로 출력하고, 필요한 processed split 파일 누락 시 즉시 중단한다.
 
 ## 기대 효과
 - 확장에 연결된 분석 모델을, 네가 실제로 사용했던 원본 학습 데이터셋 기반으로 다시 관리 가능
