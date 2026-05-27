@@ -198,6 +198,10 @@ models:
     random_state: 42
     n_jobs: -1
     class_weight: "balanced"
+  logistic_regression:
+    Cs: [0.01, 0.1, 1.0, 10.0]
+    cv: 3
+    max_iter: 2000
   xgboost:
     n_estimators: 300
     max_depth: 6
@@ -213,7 +217,7 @@ models:
 
 # --- 학습 데이터 증강 설정 ---
 augmentation:
-  enabled: true
+  enabled: false
   threat_sample_ratio: 0.35   # 위협 샘플 중 증강 대상 비율
   variants_per_sample: 1      # 샘플당 생성 변형 수
   random_seed: 42

@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.ml_api import build_input_row, predict_email
 from src.data.augmentation import augment_training_data
-from src.data.preprocessor import preprocess
+from src.data.preprocessor import preprocess, split_dataset
 from src.explainability.rule_explainer import generate_rule_explanation
 from src.features.model_text import build_model_text_record
 from src.features.rule_features import add_rule_features, extract_rule_features
@@ -76,6 +76,31 @@ class TestPipelineSmoke(unittest.TestCase):
         self.assertEqual(out.loc[0, "sender_domain"], "paypal-secure.tk")
         self.assertEqual(out.loc[0, "reply_to_domain"], "paypal.com")
         self.assertGreaterEqual(out.loc[0, "url_count"], 1)
+        self.assertNotIn("escapenumber", out.loc[0, "text_combined"].lower())
+
+    def test_group_split_keeps_duplicate_content_in_one_split(self):
+        rows = []
+        for i in range(100):
+            suffix = chr(65 + (i % 26)) + chr(65 + ((i // 26) % 26))
+            body = "Repeated invoice body" if i < 6 else f"Unique body token {suffix}"
+            rows.append({
+                "email_id": f"e{i}",
+                "source": "unit",
+                "subject": "Subject",
+                "body": body,
+                "sender": "sender@example.com",
+                "reply_to": "sender@example.com",
+                "label_type": "phishing" if i % 2 else "ham",
+                "label": i % 2,
+            })
+        df = preprocess(pd.DataFrame(rows))
+
+        train_df, val_df, test_df = split_dataset(df, train_ratio=0.6, val_ratio=0.2, random_seed=7)
+        split_names = {}
+        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+            for group in split_df["content_group"].unique():
+                self.assertNotIn(group, split_names)
+                split_names[group] = split_name
 
     def test_rule_features_and_explanation(self):
         row = {

@@ -1,0 +1,84 @@
+{
+  "source_metrics": [
+    {
+      "source": "big_spam_ham_phish",
+      "n": 42250,
+      "positive_rate": 0.5354,
+      "accuracy": 0.9796,
+      "f1": 0.981,
+      "precision": 0.9821,
+      "recall": 0.9799,
+      "roc_auc": 0.9979
+    },
+    {
+      "source": "ceas08",
+      "n": 5396,
+      "positive_rate": 0.5235,
+      "accuracy": 0.9863,
+      "f1": 0.987,
+      "precision": 0.9804,
+      "recall": 0.9936,
+      "roc_auc": 0.9991
+    },
+    {
+      "source": "enron_structured",
+      "n": 4440,
+      "positive_rate": 0.4773,
+      "accuracy": 0.9892,
+      "f1": 0.9886,
+      "precision": 0.991,
+      "recall": 0.9863,
+      "roc_auc": 0.9992
+    },
+    {
+      "source": "phishing_email_csv",
+      "n": 2622,
+      "positive_rate": 0.3783,
+      "accuracy": 0.984,
+      "f1": 0.9789,
+      "precision": 0.976,
+      "recall": 0.9819,
+      "roc_auc": 0.9985
+    },
+    {
+      "source": "spamassassin",
+      "n": 912,
+      "positive_rate": 0.2807,
+      "accuracy": 0.966,
+      "f1": 0.9405,
+      "precision": 0.9245,
+      "recall": 0.957,
+      "roc_auc": 0.9955
+    },
+    {
+      "source": "nigerian_fraud",
+      "n": 479,
+      "positive_rate": 1.0,
+      "accuracy": 0.9958,
+      "f1": 0.9979,
+      "precision": 1.0,
+      "recall": 0.9958,
+      "roc_auc": null
+    },
+    {
+      "source": "ling",
+      "n": 414,
+      "positive_rate": 0.1449,
+      "accuracy": 0.9758,
+      "f1": 0.9206,
+      "precision": 0.8788,
+      "recall": 0.9667,
+      "roc_auc": 0.9961
+    },
+    {
+      "source": "nazario",
+      "n": 217,
+      "positive_rate": 1.0,
+      "accuracy": 0.9539,
+      "f1": 0.9764,
+      "precision": 1.0,
+      "recall": 0.9539,
+      "roc_auc": null
+    }
+  ]
+}

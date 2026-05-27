@@ -1,104 +1,104 @@
 {
-  "generated_at": "2026-05-27T16:34:54",
+  "generated_at": "2026-05-27T18:01:32",
   "primary_metric": "f1",
   "default_threshold": 0.5,
   "models": {
     "lr": {
-      "threshold": 0.55,
+      "threshold": 0.53,
       "val": {
-        "threshold": 0.55,
-        "accuracy": 0.9876,
-        "f1": 0.9883,
-        "precision": 0.9887,
-        "recall": 0.9879,
-        "tp": 29708,
-        "tn": 26436,
-        "fp": 340,
-        "fn": 363,
+        "threshold": 0.53,
+        "accuracy": 0.9812,
+        "f1": 0.9824,
+        "precision": 0.9825,
+        "recall": 0.9823,
+        "tp": 30155,
+        "tn": 26087,
+        "fp": 536,
+        "fn": 542,
         "conf_matrix": [
           [
-            26436,
-            340
+            26087,
+            536
           ],
           [
-            363,
-            29708
+            542,
+            30155
           ]
         ],
-        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26776\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56847\n   macro avg       0.99      0.99      0.99     56847\nweighted avg       0.99      0.99      0.99     56847\n",
-        "roc_auc": 0.9989
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.98      0.98      0.98     26623\n      threat       0.98      0.98      0.98     30697\n\n    accuracy                           0.98     57320\n   macro avg       0.98      0.98      0.98     57320\nweighted avg       0.98      0.98      0.98     57320\n",
+        "roc_auc": 0.9981
       },
       "test": {
-        "threshold": 0.55,
-        "accuracy": 0.9887,
-        "f1": 0.9893,
-        "precision": 0.9894,
-        "recall": 0.9892,
-        "tp": 29746,
-        "tn": 26458,
-        "fp": 319,
-        "fn": 325,
+        "threshold": 0.53,
+        "accuracy": 0.981,
+        "f1": 0.9818,
+        "precision": 0.982,
+        "recall": 0.9816,
+        "tp": 29023,
+        "tn": 26630,
+        "fp": 532,
+        "fn": 545,
         "conf_matrix": [
           [
-            26458,
-            319
+            26630,
+            532
           ],
           [
-            325,
-            29746
+            545,
+            29023
           ]
         ],
-        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26777\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56848\n   macro avg       0.99      0.99      0.99     56848\nweighted avg       0.99      0.99      0.99     56848\n",
-        "roc_auc": 0.999
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.98      0.98      0.98     27162\n      threat       0.98      0.98      0.98     29568\n\n    accuracy                           0.98     56730\n   macro avg       0.98      0.98      0.98     56730\nweighted avg       0.98      0.98      0.98     56730\n",
+        "roc_auc": 0.9981
       }
     },
     "logistic_regression": {
-      "threshold": 0.55,
+      "threshold": 0.53,
       "val": {
-        "threshold": 0.55,
-        "accuracy": 0.9876,
-        "f1": 0.9883,
-        "precision": 0.9887,
-        "recall": 0.9879,
-        "tp": 29708,
-        "tn": 26436,
-        "fp": 340,
-        "fn": 363,
+        "threshold": 0.53,
+        "accuracy": 0.9812,
+        "f1": 0.9824,
+        "precision": 0.9825,
+        "recall": 0.9823,
+        "tp": 30155,
+        "tn": 26087,
+        "fp": 536,
+        "fn": 542,
         "conf_matrix": [
           [
-            26436,
-            340
+            26087,
+            536
           ],
           [
-            363,
-            29708
+            542,
+            30155
           ]
         ],
-        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26776\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56847\n   macro avg       0.99      0.99      0.99     56847\nweighted avg       0.99      0.99      0.99     56847\n",
-        "roc_auc": 0.9989
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.98      0.98      0.98     26623\n      threat       0.98      0.98      0.98     30697\n\n    accuracy                           0.98     57320\n   macro avg       0.98      0.98      0.98     57320\nweighted avg       0.98      0.98      0.98     57320\n",
+        "roc_auc": 0.9981
       },
       "test": {
-        "threshold": 0.55,
-        "accuracy": 0.9887,
-        "f1": 0.9893,
-        "precision": 0.9894,
-        "recall": 0.9892,
-        "tp": 29746,
-        "tn": 26458,
-        "fp": 319,
-        "fn": 325,
+        "threshold": 0.53,
+        "accuracy": 0.981,
+        "f1": 0.9818,
+        "precision": 0.982,
+        "recall": 0.9816,
+        "tp": 29023,
+        "tn": 26630,
+        "fp": 532,
+        "fn": 545,
         "conf_matrix": [
           [
-            26458,
-            319
+            26630,
+            532
           ],
           [
-            325,
-            29746
+            545,
+            29023
           ]
         ],
-        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26777\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56848\n   macro avg       0.99      0.99      0.99     56848\nweighted avg       0.99      0.99      0.99     56848\n",
-        "roc_auc": 0.999
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.98      0.98      0.98     27162\n      threat       0.98      0.98      0.98     29568\n\n    accuracy                           0.98     56730\n   macro avg       0.98      0.98      0.98     56730\nweighted avg       0.98      0.98      0.98     56730\n",
+        "roc_auc": 0.9981
       }
     },
     "xgboost": {
@@ -106,6 +106,172 @@
       "val": {},
       "test": {}
     }
+  },
+  "diagnostics": {
+    "val_by_source": [
+      {
+        "source": "big_spam_ham_phish",
+        "n": 41682,
+        "positive_rate": 0.5444,
+        "accuracy": 0.9792,
+        "f1": 0.9809,
+        "precision": 0.982,
+        "recall": 0.9797,
+        "roc_auc": 0.998
+      },
+      {
+        "source": "ceas08",
+        "n": 6469,
+        "positive_rate": 0.5941,
+        "accuracy": 0.9887,
+        "f1": 0.9906,
+        "precision": 0.9836,
+        "recall": 0.9977,
+        "roc_auc": 0.9978
+      },
+      {
+        "source": "enron_structured",
+        "n": 4375,
+        "positive_rate": 0.4709,
+        "accuracy": 0.9897,
+        "f1": 0.9891,
+        "precision": 0.9884,
+        "recall": 0.9898,
+        "roc_auc": 0.9993
+      },
+      {
+        "source": "phishing_email_csv",
+        "n": 2717,
+        "positive_rate": 0.3739,
+        "accuracy": 0.9838,
+        "f1": 0.9784,
+        "precision": 0.9755,
+        "recall": 0.9813,
+        "roc_auc": 0.9982
+      },
+      {
+        "source": "spamassassin",
+        "n": 904,
+        "positive_rate": 0.302,
+        "accuracy": 0.9757,
+        "f1": 0.96,
+        "precision": 0.9531,
+        "recall": 0.967,
+        "roc_auc": 0.9957
+      },
+      {
+        "source": "nigerian_fraud",
+        "n": 502,
+        "positive_rate": 1.0,
+        "accuracy": 1.0,
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "roc_auc": null
+      },
+      {
+        "source": "ling",
+        "n": 432,
+        "positive_rate": 0.1644,
+        "accuracy": 0.9861,
+        "f1": 0.9577,
+        "precision": 0.9577,
+        "recall": 0.9577,
+        "roc_auc": 0.9985
+      },
+      {
+        "source": "nazario",
+        "n": 239,
+        "positive_rate": 1.0,
+        "accuracy": 0.9163,
+        "f1": 0.9563,
+        "precision": 1.0,
+        "recall": 0.9163,
+        "roc_auc": null
+      }
+    ],
+    "test_by_source": [
+      {
+        "source": "big_spam_ham_phish",
+        "n": 42250,
+        "positive_rate": 0.5354,
+        "accuracy": 0.9796,
+        "f1": 0.981,
+        "precision": 0.9821,
+        "recall": 0.9799,
+        "roc_auc": 0.9979
+      },
+      {
+        "source": "ceas08",
+        "n": 5396,
+        "positive_rate": 0.5235,
+        "accuracy": 0.9863,
+        "f1": 0.987,
+        "precision": 0.9804,
+        "recall": 0.9936,
+        "roc_auc": 0.9991
+      },
+      {
+        "source": "enron_structured",
+        "n": 4440,
+        "positive_rate": 0.4773,
+        "accuracy": 0.9892,
+        "f1": 0.9886,
+        "precision": 0.991,
+        "recall": 0.9863,
+        "roc_auc": 0.9992
+      },
+      {
+        "source": "phishing_email_csv",
+        "n": 2622,
+        "positive_rate": 0.3783,
+        "accuracy": 0.984,
+        "f1": 0.9789,
+        "precision": 0.976,
+        "recall": 0.9819,
+        "roc_auc": 0.9985
+      },
+      {
+        "source": "spamassassin",
+        "n": 912,
+        "positive_rate": 0.2807,
+        "accuracy": 0.966,
+        "f1": 0.9405,
+        "precision": 0.9245,
+        "recall": 0.957,
+        "roc_auc": 0.9955
+      },
+      {
+        "source": "nigerian_fraud",
+        "n": 479,
+        "positive_rate": 1.0,
+        "accuracy": 0.9958,
+        "f1": 0.9979,
+        "precision": 1.0,
+        "recall": 0.9958,
+        "roc_auc": null
+      },
+      {
+        "source": "ling",
+        "n": 414,
+        "positive_rate": 0.1449,
+        "accuracy": 0.9758,
+        "f1": 0.9206,
+        "precision": 0.8788,
+        "recall": 0.9667,
+        "roc_auc": 0.9961
+      },
+      {
+        "source": "nazario",
+        "n": 217,
+        "positive_rate": 1.0,
+        "accuracy": 0.9539,
+        "f1": 0.9764,
+        "precision": 1.0,
+        "recall": 0.9539,
+        "roc_auc": null
+      }
+    ]
   },
   "model_features": {
     "include_rule_features": false,

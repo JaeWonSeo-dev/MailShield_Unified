@@ -70,8 +70,9 @@ Feature selection은 `Chi-square SelectKBest`를 사용합니다.
 - TF-IDF max features: `50000`
 - Feature selection: `chi2`, `k=30000`
 - Rule numeric features: disabled
+- Data augmentation: disabled
 - Threshold selection: validation F1 기준 자동 탐색
-- Active threshold: `0.55`
+- Active threshold: `0.53`
 
 ## Dataset
 
@@ -88,22 +89,24 @@ Feature selection은 `Chi-square SelectKBest`를 사용합니다.
 | Step | Count |
 | --- | ---: |
 | Raw rows before dedupe | 466,584 |
-| Rows after dedupe | 379,421 |
-| Rows after preprocessing | 378,980 |
-| Train | 265,285 |
-| Validation | 56,847 |
-| Test | 56,848 |
+| Rows after dedupe | 379,397 |
+| Rows after preprocessing | 378,899 |
+| Train | 264,849 |
+| Validation | 57,320 |
+| Test | 56,730 |
 
 최근 평가 결과:
 
 | Metric | Score |
 | --- | ---: |
-| Accuracy | 0.9887 |
-| F1 | 0.9893 |
-| Precision | 0.9894 |
-| Recall | 0.9892 |
-| ROC-AUC | 0.9990 |
-| Threshold | 0.55 |
+| Accuracy | 0.9810 |
+| F1 | 0.9818 |
+| Precision | 0.9820 |
+| Recall | 0.9816 |
+| ROC-AUC | 0.9981 |
+| Threshold | 0.53 |
+
+평가는 content group split을 사용해 같은 정규화 메일 본문이 train, validation, test에 동시에 들어가지 않도록 구성합니다. 이 방식은 랜덤 split보다 점수가 낮아질 수 있지만, 실제 신규 메일에 대한 일반화 성능을 더 보수적으로 추정합니다.
 
 ## Requirements
 

@@ -137,6 +137,33 @@ def save_metrics(metrics: Dict[str, Any], output_path: str) -> None:
     logger.info(f"Metrics saved: {path}")
 
 
+def evaluate_by_column(model, X: csr_matrix, df, column: str, threshold: float = 0.5) -> list:
+    if column not in df.columns:
+        return []
+    scores = predict_scores(model, X)
+    pred = (scores >= threshold).astype(int)
+    rows = []
+    eval_df = df[[column, "label"]].copy()
+    eval_df["_score"] = scores
+    eval_df["_pred"] = pred
+    for value, group in eval_df.groupby(column):
+        y = group["label"].values
+        p = group["_pred"].values
+        s = group["_score"].values
+        row = {
+            column: str(value),
+            "n": int(len(group)),
+            "positive_rate": round(float(np.mean(y)), 4),
+            "accuracy": round(accuracy_score(y, p), 4),
+            "f1": round(f1_score(y, p, zero_division=0), 4),
+            "precision": round(precision_score(y, p, zero_division=0), 4),
+            "recall": round(recall_score(y, p, zero_division=0), 4),
+        }
+        row["roc_auc"] = round(roc_auc_score(y, s), 4) if len(set(y)) > 1 else None
+        rows.append(row)
+    return sorted(rows, key=lambda item: item["n"], reverse=True)
+
+
 def save_results_bundle(summary: Dict[str, Any], results_dir: Path) -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -196,7 +223,7 @@ def save_model_metadata(metadata: Dict[str, Any], output_path: str) -> None:
     logger.info(f"Model metadata saved: {path}")
 
 
-def train_logistic_regression(X_train, y_train, Cs: int = 5, cv: int = 5, max_iter: int = 1000, random_state: int = 42):
+def train_logistic_regression(X_train, y_train, Cs=5, cv: int = 5, max_iter: int = 1000, random_state: int = 42):
     logger.info(f"Training LogisticRegressionCV (cv={cv}, Cs={Cs})...")
     model = LogisticRegressionCV(
         Cs=Cs,
@@ -373,14 +400,25 @@ if __name__ == "__main__":
     auto_scale_pos_weight = round(neg_count / pos_count, 4)
     logger.info(f"Class balance (train): neg={neg_count}, pos={pos_count}, auto_scale_pos_weight={auto_scale_pos_weight}")
 
-    lr_model = train_logistic_regression(X_train, y_train, Cs=5, cv=5, random_state=config["data"]["random_seed"])
+    lr_cfg = config.get("models", {}).get("logistic_regression", {})
+    lr_model = train_logistic_regression(
+        X_train,
+        y_train,
+        Cs=lr_cfg.get("Cs", 5),
+        cv=int(lr_cfg.get("cv", config.get("evaluation", {}).get("cv_folds", 5))),
+        max_iter=int(lr_cfg.get("max_iter", 1000)),
+        random_state=config["data"]["random_seed"],
+    )
     lr_threshold = find_best_threshold(lr_model, X_val, y_val, metric=primary_metric)["threshold"]
     logger.info(f"LogisticRegressionCV best validation threshold={lr_threshold}")
     lr_val_metrics = evaluate_model(lr_model, X_val, y_val, threshold=lr_threshold, model_name="LogisticRegressionCV [val]")
     lr_test_metrics = evaluate_model(lr_model, X_test, y_test, threshold=lr_threshold, model_name="LogisticRegressionCV [test]")
+    lr_val_by_source = evaluate_by_column(lr_model, X_val, val_df, "source", threshold=lr_threshold)
+    lr_test_by_source = evaluate_by_column(lr_model, X_test, test_df, "source", threshold=lr_threshold)
     save_model(lr_model, str(models_dir / "lr_model.pkl"))
     save_metrics(lr_val_metrics, str(reports_dir / "lr_val_metrics.json"))
     save_metrics(lr_test_metrics, str(reports_dir / "lr_test_metrics.json"))
+    save_metrics({"source_metrics": lr_test_by_source}, str(reports_dir / "lr_test_by_source.json"))
 
     xgb_cfg = config.get("models", {}).get("xgboost", {})
     xgb_model = None
@@ -440,6 +478,10 @@ if __name__ == "__main__":
             "lr": {"threshold": lr_threshold, "val": lr_val_metrics, "test": lr_test_metrics},
             "logistic_regression": {"threshold": lr_threshold, "val": lr_val_metrics, "test": lr_test_metrics},
             "xgboost": {"threshold": xgb_threshold, "val": xgb_val_metrics, "test": xgb_test_metrics},
+        },
+        "diagnostics": {
+            "val_by_source": lr_val_by_source,
+            "test_by_source": lr_test_by_source,
         },
         "model_features": summary["model_features"],
     }

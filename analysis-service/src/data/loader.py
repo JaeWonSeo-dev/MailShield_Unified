@@ -258,7 +258,12 @@ def load_all_datasets(
         + "\n"
         + combined["body"].fillna("").astype(str).str.lower().str.strip()
     )
-    combined = combined.drop_duplicates(subset=["_dedupe_text", "label"]).drop(columns=["_dedupe_text"]).reset_index(drop=True)
+    conflict_texts = combined.groupby("_dedupe_text")["label"].nunique()
+    conflict_texts = set(conflict_texts[conflict_texts > 1].index)
+    if conflict_texts:
+        logger.info(f"Removing label-conflicting duplicate texts: {len(conflict_texts)}")
+        combined = combined[~combined["_dedupe_text"].isin(conflict_texts)]
+    combined = combined.drop_duplicates(subset=["_dedupe_text"]).drop(columns=["_dedupe_text"]).reset_index(drop=True)
     combined["email_id"] = [f"email_{i:06d}" for i in range(len(combined))]
 
     logger.info(

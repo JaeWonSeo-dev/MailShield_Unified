@@ -11,6 +11,7 @@ Raw DataFrame → Processed DataFrame
 """
 
 import re
+import hashlib
 import logging
 import sys
 import warnings
@@ -20,7 +21,7 @@ from urllib.parse import urlparse
 
 import pandas as pd
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
@@ -44,6 +45,7 @@ _HTML_ENTITY_PATTERN = re.compile(r"&[a-zA-Z]+;|&#\d+;")
 
 # 반복 공백/줄바꿈 정리
 _WHITESPACE_PATTERN = re.compile(r"\s+")
+_DATASET_ARTIFACT_PATTERN = re.compile(r"\bescape[a-z0-9_]*\b", re.IGNORECASE)
 
 
 # ─────────────────────────────────────────────
@@ -87,6 +89,7 @@ def preprocess(df: pd.DataFrame, text_max_length: int = 5000) -> pd.DataFrame:
 
     # 문자 수
     df["char_count"] = df["text_combined"].apply(len)
+    df["content_group"] = df.apply(_content_group_id, axis=1)
 
     # 빈 텍스트 제거
     before = len(df)
@@ -108,27 +111,30 @@ def split_dataset(
     random_seed: int = 42,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Stratified split: train / val / test
+    Group-aware split: train / val / test.
+
+    동일하거나 거의 동일한 정규화 본문이 train/val/test에 동시에 들어가는 것을 막아
+    랜덤 split 기반 성능 과대평가를 줄인다.
     """
     test_ratio = 1.0 - train_ratio - val_ratio
     assert test_ratio > 0, "train_ratio + val_ratio must be less than 1.0"
 
-    train_df, temp_df = train_test_split(
-        df,
-        test_size=(val_ratio + test_ratio),
-        random_state=random_seed,
-        stratify=df["label"],
-    )
+    groups = df["content_group"] if "content_group" in df.columns else df.apply(_content_group_id, axis=1)
+    first_split = GroupShuffleSplit(n_splits=1, test_size=(val_ratio + test_ratio), random_state=random_seed)
+    train_idx, temp_idx = next(first_split.split(df, df["label"], groups))
+    train_df = df.iloc[train_idx].copy()
+    temp_df = df.iloc[temp_idx].copy()
+
     val_size_adjusted = val_ratio / (val_ratio + test_ratio)
-    val_df, test_df = train_test_split(
-        temp_df,
-        test_size=(1 - val_size_adjusted),
-        random_state=random_seed,
-        stratify=temp_df["label"],
-    )
+    temp_groups = temp_df["content_group"] if "content_group" in temp_df.columns else temp_df.apply(_content_group_id, axis=1)
+    second_split = GroupShuffleSplit(n_splits=1, test_size=(1 - val_size_adjusted), random_state=random_seed)
+    val_idx, test_idx = next(second_split.split(temp_df, temp_df["label"], temp_groups))
+    val_df = temp_df.iloc[val_idx].copy()
+    test_df = temp_df.iloc[test_idx].copy()
 
     logger.info(
-        f"Split: train={len(train_df)}, val={len(val_df)}, test={len(test_df)}"
+        f"Group split: train={len(train_df)}, val={len(val_df)}, test={len(test_df)} | "
+        f"groups={groups.nunique()}"
     )
     return train_df.reset_index(drop=True), val_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
@@ -163,6 +169,10 @@ def _clean_text(text: str) -> str:
             pass
     # HTML 엔티티 정리
     text = _HTML_ENTITY_PATTERN.sub(" ", text)
+    # 공개 데이터셋 전처리 과정에서 생긴 placeholder/artifact 제거
+    text = _DATASET_ARTIFACT_PATTERN.sub(" ", text)
+    # 원문 URL은 별도 url 토큰으로 제공되므로 본문에서는 일반 토큰화해 도메인 누수를 줄인다.
+    text = _URL_PATTERN.sub(" URLTOKEN ", text)
     # 제어 문자 제거
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", text)
     # 반복 공백 정리
@@ -172,6 +182,22 @@ def _clean_text(text: str) -> str:
 
 def _whitespace_normalize(text: str) -> str:
     return _WHITESPACE_PATTERN.sub(" ", text).strip()
+
+
+def _content_group_id(row) -> str:
+    subject = _normalize_for_group(row.get("subject_clean") or row.get("subject") or "")
+    body = _normalize_for_group(row.get("body_clean") or row.get("body") or "")
+    key = f"{subject}\n{body}"
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()
+
+
+def _normalize_for_group(text: str) -> str:
+    text = str(text or "").lower()
+    text = _URL_PATTERN.sub(" URLTOKEN ", text)
+    text = _DATASET_ARTIFACT_PATTERN.sub(" ", text)
+    text = re.sub(r"\d+", " NUMTOKEN ", text)
+    text = re.sub(r"[^a-z가-힣]+", " ", text)
+    return _whitespace_normalize(text)
 
 
 def _extract_email_domain(address: str) -> str:
