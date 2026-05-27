@@ -1,0 +1,77 @@
+{
+  "generated_at": "2026-05-27T16:34:54",
+  "default_threshold": 0.5,
+  "primary_metric": "f1",
+  "model_features": {
+    "include_rule_features": false,
+    "text_fields": [
+      "subject",
+      "body",
+      "sender",
+      "sender_domain",
+      "reply_to",
+      "reply_to_domain",
+      "urls",
+      "attachments"
+    ]
+  },
+  "class_balance": {
+    "neg": 124956,
+    "pos": 189444,
+    "scale_pos_weight": 0.6596
+  },
+  "models": {
+    "logistic_regression": {
+      "val": {
+        "threshold": 0.55,
+        "accuracy": 0.9876,
+        "f1": 0.9883,
+        "precision": 0.9887,
+        "recall": 0.9879,
+        "tp": 29708,
+        "tn": 26436,
+        "fp": 340,
+        "fn": 363,
+        "conf_matrix": [
+          [
+            26436,
+            340
+          ],
+          [
+            363,
+            29708
+          ]
+        ],
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26776\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56847\n   macro avg       0.99      0.99      0.99     56847\nweighted avg       0.99      0.99      0.99     56847\n",
+        "roc_auc": 0.9989
+      },
+      "test": {
+        "threshold": 0.55,
+        "accuracy": 0.9887,
+        "f1": 0.9893,
+        "precision": 0.9894,
+        "recall": 0.9892,
+        "tp": 29746,
+        "tn": 26458,
+        "fp": 319,
+        "fn": 325,
+        "conf_matrix": [
+          [
+            26458,
+            319
+          ],
+          [
+            325,
+            29746
+          ]
+        ],
+        "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.99      0.99     26777\n      threat       0.99      0.99      0.99     30071\n\n    accuracy                           0.99     56848\n   macro avg       0.99      0.99      0.99     56848\nweighted avg       0.99      0.99      0.99     56848\n",
+        "roc_auc": 0.999
+      }
+    },
+    "xgboost": {
+      "val": {},
+      "test": {}
+    }
+  }
+}

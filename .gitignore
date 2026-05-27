@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Model artifacts cache
+analysis-service/.pytest_cache/
+analysis-service/**/__pycache__/
+
+# Downloaded/generated datasets
+analysis-service/data/raw/
+analysis-service/data/processed/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
