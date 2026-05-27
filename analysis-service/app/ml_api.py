@@ -104,6 +104,81 @@ THRESHOLD = float(
     .get(ACTIVE_MODEL_NAME, {})
     .get("threshold", CONFIG.get("evaluation", {}).get("threshold", 0.5))
 )
+CLASS_NAMES = MODEL_METADATA.get("class_names", ["ham", "spam", "phishing"])
+CLASS_LABELS = MODEL_METADATA.get("class_labels", {"ham": 0, "spam": 1, "phishing": 2})
+SEVERITY_THRESHOLDS = MODEL_METADATA.get("phishing_severity_thresholds", {"low": 0.4, "medium": 0.65, "high": 0.85})
+
+
+def _level_for_class(verdict: str, phishing_prob: float) -> str:
+    if verdict == "phishing":
+        if phishing_prob >= float(SEVERITY_THRESHOLDS.get("high", 0.85)):
+            return "phishing-high"
+        if phishing_prob >= float(SEVERITY_THRESHOLDS.get("medium", 0.65)):
+            return "phishing-medium"
+        return "phishing-low"
+    if verdict == "spam":
+        return "spam"
+    return "safe"
+
+
+def _legacy_level(prob: float) -> str:
+    if prob >= 0.75:
+        return "phishing-high"
+    if prob >= 0.5:
+        return "phishing-medium"
+    if prob >= 0.25:
+        return "phishing-low"
+    return "safe"
+
+
+def _rule_prediction(prob: float) -> Dict[str, Any]:
+    verdict = "phishing" if prob >= THRESHOLD else "legit"
+    return {
+        "label": int(prob >= THRESHOLD),
+        "verdict": verdict,
+        "classification": verdict,
+        "score": round(prob * 100, 1),
+        "phishing_score": round(prob * 100, 1),
+        "spam_score": 0.0,
+        "confidence": prob,
+        "level": _legacy_level(prob) if verdict == "phishing" else "safe",
+        "class_probabilities": {"ham": round((1 - prob) * 100, 1), "spam": 0.0, "phishing": round(prob * 100, 1)},
+    }
+
+
+def _probability_result(model, X) -> Dict[str, Any]:
+    probabilities = model.predict_proba(X)[0]
+    model_classes = list(getattr(model, "classes_", range(len(probabilities))))
+
+    if len(probabilities) <= 2:
+        return _rule_prediction(float(probabilities[1]))
+
+    prob_by_label = {int(label): float(probabilities[idx]) for idx, label in enumerate(model_classes)}
+    class_probabilities = {
+        "ham": prob_by_label.get(int(CLASS_LABELS.get("ham", 0)), 0.0),
+        "spam": prob_by_label.get(int(CLASS_LABELS.get("spam", 1)), 0.0),
+        "phishing": prob_by_label.get(int(CLASS_LABELS.get("phishing", 2)), 0.0),
+    }
+    predicted_label = int(model_classes[int(probabilities.argmax())])
+    verdict = next((name for name, label in CLASS_LABELS.items() if int(label) == predicted_label), "legit")
+    if verdict == "ham":
+        verdict = "legit"
+
+    phishing_prob = class_probabilities["phishing"]
+    spam_prob = class_probabilities["spam"]
+    confidence = max(class_probabilities.values())
+
+    return {
+        "label": predicted_label,
+        "verdict": verdict,
+        "classification": verdict,
+        "score": round(phishing_prob * 100, 1),
+        "phishing_score": round(phishing_prob * 100, 1),
+        "spam_score": round(spam_prob * 100, 1),
+        "confidence": confidence,
+        "level": _level_for_class(verdict, phishing_prob),
+        "class_probabilities": {name: round(value * 100, 1) for name, value in class_probabilities.items()},
+    }
 
 
 def _normalize_link_items(raw_links: Any) -> List[Dict[str, str]]:
@@ -196,13 +271,14 @@ def predict_email(payload: Dict[str, Any]):
 
     row, rule_feats, urls, attachments = build_input_row(payload)
     reasons = generate_rule_explanation(rule_feats)
+    prediction = None
 
     if MODEL is not None and EXTRACTOR is not None:
         temp_df = pd.DataFrame([row])
         X = EXTRACTOR.transform(temp_df)
 
         try:
-            prob = float(MODEL.predict_proba(X)[0][1])
+            prediction = _probability_result(MODEL, X)
         except Exception:
             fallback_model, fallback_extractor = load_artifacts("lr")
             if fallback_model is not None and fallback_extractor is not None:
@@ -210,29 +286,27 @@ def predict_email(payload: Dict[str, Any]):
                     MODEL, EXTRACTOR = fallback_model, fallback_extractor
                     ACTIVE_MODEL_NAME = "lr"
                     X = EXTRACTOR.transform(temp_df)
-                    prob = float(MODEL.predict_proba(X)[0][1])
+                    prediction = _probability_result(MODEL, X)
                 except Exception:
                     risk = float(rule_feats.get("rule_risk_score", 0))
-                    prob = min(risk / 10.0, 0.99)
+                    prediction = _rule_prediction(min(risk / 10.0, 0.99))
                     ACTIVE_MODEL_NAME = "rule-only"
             else:
                 risk = float(rule_feats.get("rule_risk_score", 0))
-                prob = min(risk / 10.0, 0.99)
+                prediction = _rule_prediction(min(risk / 10.0, 0.99))
                 ACTIVE_MODEL_NAME = "rule-only"
     else:
         risk = float(rule_feats.get("rule_risk_score", 0))
-        prob = min(risk / 10.0, 0.99)
+        prediction = _rule_prediction(min(risk / 10.0, 0.99))
         ACTIVE_MODEL_NAME = "rule-only"
 
-    level = "high-risk" if prob >= 0.75 else "suspicious" if prob >= 0.5 else "caution" if prob >= 0.25 else "safe"
-    verdict = "phishing" if prob >= THRESHOLD else "legit"
+    if prediction["verdict"] == "spam":
+        reasons = [{"text": "광고/홍보성 스팸 패턴에 더 가깝게 분류되었습니다. 피싱 점수는 별도로 낮게 유지됩니다."}]
+    elif prediction["verdict"] == "legit":
+        reasons = []
 
     return {
-        "label": int(prob >= THRESHOLD),
-        "verdict": verdict,
-        "score": round(prob * 100, 1),
-        "confidence": prob,
-        "level": level,
+        **prediction,
         "reasons": [r["text"] for r in reasons],
         "rule_features": rule_feats,
         "urls": urls,
@@ -265,6 +339,8 @@ class Handler(BaseHTTPRequestHandler):
                 "ready": True,
                 "model": ACTIVE_MODEL_NAME,
                 "threshold": THRESHOLD,
+                "classification_mode": MODEL_METADATA.get("classification_mode", "binary"),
+                "class_names": CLASS_NAMES,
                 "mode": "ml-api" if ACTIVE_MODEL_NAME != "rule-only" else "rule-api",
             })
             return

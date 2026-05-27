@@ -48,6 +48,30 @@ else:
 
 logger = logging.getLogger(__name__)
 
+CLASS_NAMES = ["ham", "spam", "phishing"]
+CLASS_LABELS = {name: idx for idx, name in enumerate(CLASS_NAMES)}
+PHISHING_ALIASES = {"phishing", "fraud", "scam", "malware"}
+
+
+def build_multiclass_target(df) -> np.ndarray:
+    """Map dataset label_type values into normal/spam/phishing classes."""
+    if "label_type" not in df.columns:
+        return df["label"].values
+
+    def map_label(value: Any) -> int:
+        label_type = str(value or "").strip().lower()
+        if label_type == "spam":
+            return CLASS_LABELS["spam"]
+        if label_type in PHISHING_ALIASES:
+            return CLASS_LABELS["phishing"]
+        return CLASS_LABELS["ham"]
+
+    return df["label_type"].map(map_label).astype(int).values
+
+
+def class_balance_summary(y: np.ndarray) -> Dict[str, int]:
+    return {name: int((y == idx).sum()) for name, idx in CLASS_LABELS.items()}
+
 
 def predict_scores(model, X: csr_matrix) -> np.ndarray:
     if hasattr(model, "predict_proba"):
@@ -97,32 +121,57 @@ def evaluate_model(
     y: np.ndarray,
     threshold: float = 0.5,
     model_name: str = "Model",
+    class_names: list[str] | None = None,
 ) -> Dict[str, Any]:
     """모델 평가 후 지표 딕셔너리 반환."""
-    y_pred_proba = predict_scores(model, X)
-    y_pred = (y_pred_proba >= threshold).astype(int)
+    class_names = class_names or ["ham", "threat"]
+    labels = list(range(len(class_names)))
 
-    report_text = classification_report(y, y_pred, target_names=["ham", "threat"], zero_division=0)
-    conf = confusion_matrix(y, y_pred, labels=[0, 1])
-    tn, fp, fn, tp = conf.ravel()
+    if len(class_names) > 2:
+        if hasattr(model, "predict_proba"):
+            y_pred_proba = model.predict_proba(X)
+            y_pred = labels and np.asarray(getattr(model, "classes_", labels))[np.argmax(y_pred_proba, axis=1)]
+        else:
+            y_pred_proba = None
+            y_pred = model.predict(X)
+    else:
+        y_pred_proba = predict_scores(model, X)
+        y_pred = (y_pred_proba >= threshold).astype(int)
+
+    report_text = classification_report(y, y_pred, labels=labels, target_names=class_names, zero_division=0)
+    conf = confusion_matrix(y, y_pred, labels=labels)
     metrics = {
         "threshold": threshold,
         "accuracy": round(accuracy_score(y, y_pred), 4),
-        "f1": round(f1_score(y, y_pred, zero_division=0), 4),
-        "precision": round(precision_score(y, y_pred, zero_division=0), 4),
-        "recall": round(recall_score(y, y_pred, zero_division=0), 4),
-        "tp": int(tp),
-        "tn": int(tn),
-        "fp": int(fp),
-        "fn": int(fn),
+        "f1_macro": round(f1_score(y, y_pred, average="macro", zero_division=0), 4),
+        "f1_weighted": round(f1_score(y, y_pred, average="weighted", zero_division=0), 4),
+        "precision_macro": round(precision_score(y, y_pred, average="macro", zero_division=0), 4),
+        "recall_macro": round(recall_score(y, y_pred, average="macro", zero_division=0), 4),
         "conf_matrix": conf.tolist(),
         "classification_report": report_text,
     }
-    metrics["roc_auc"] = round(roc_auc_score(y, y_pred_proba), 4)
+    if len(class_names) == 2:
+        tn, fp, fn, tp = conf.ravel()
+        metrics.update({
+            "f1": round(f1_score(y, y_pred, zero_division=0), 4),
+            "precision": round(precision_score(y, y_pred, zero_division=0), 4),
+            "recall": round(recall_score(y, y_pred, zero_division=0), 4),
+            "tp": int(tp),
+            "tn": int(tn),
+            "fp": int(fp),
+            "fn": int(fn),
+            "roc_auc": round(roc_auc_score(y, y_pred_proba), 4),
+        })
+    elif y_pred_proba is not None:
+        metrics["roc_auc_ovr"] = round(roc_auc_score(y, y_pred_proba, multi_class="ovr", average="macro"), 4)
+        for idx, name in enumerate(class_names):
+            metrics[f"{name}_f1"] = round(f1_score(y == idx, y_pred == idx, zero_division=0), 4)
+            metrics[f"{name}_precision"] = round(precision_score(y == idx, y_pred == idx, zero_division=0), 4)
+            metrics[f"{name}_recall"] = round(recall_score(y == idx, y_pred == idx, zero_division=0), 4)
 
     logger.info(
-        f"[{model_name}] F1={metrics['f1']} | Precision={metrics['precision']} | "
-        f"Recall={metrics['recall']} | AUC={metrics.get('roc_auc', 'N/A')} | threshold={threshold}"
+        f"[{model_name}] F1_macro={metrics['f1_macro']} | Accuracy={metrics['accuracy']} | "
+        f"AUC={metrics.get('roc_auc_ovr', metrics.get('roc_auc', 'N/A'))} | threshold={threshold}"
     )
     print(f"\n=== {model_name} Classification Report ===")
     print(report_text)
@@ -137,29 +186,32 @@ def save_metrics(metrics: Dict[str, Any], output_path: str) -> None:
     logger.info(f"Metrics saved: {path}")
 
 
-def evaluate_by_column(model, X: csr_matrix, df, column: str, threshold: float = 0.5) -> list:
+def evaluate_by_column(model, X: csr_matrix, df, column: str, threshold: float = 0.5, class_names: list[str] | None = None) -> list:
     if column not in df.columns:
         return []
-    scores = predict_scores(model, X)
-    pred = (scores >= threshold).astype(int)
+    class_names = class_names or ["ham", "threat"]
+    labels = list(range(len(class_names)))
+    if len(class_names) > 2:
+        scores = model.predict_proba(X) if hasattr(model, "predict_proba") else None
+        pred = np.asarray(getattr(model, "classes_", labels))[np.argmax(scores, axis=1)] if scores is not None else model.predict(X)
+    else:
+        scores = predict_scores(model, X)
+        pred = (scores >= threshold).astype(int)
     rows = []
-    eval_df = df[[column, "label"]].copy()
-    eval_df["_score"] = scores
+    target_column = "target" if "target" in df.columns else "label"
+    eval_df = df[[column, target_column]].copy()
     eval_df["_pred"] = pred
     for value, group in eval_df.groupby(column):
-        y = group["label"].values
+        y = group[target_column].values
         p = group["_pred"].values
-        s = group["_score"].values
         row = {
             column: str(value),
             "n": int(len(group)),
-            "positive_rate": round(float(np.mean(y)), 4),
             "accuracy": round(accuracy_score(y, p), 4),
-            "f1": round(f1_score(y, p, zero_division=0), 4),
-            "precision": round(precision_score(y, p, zero_division=0), 4),
-            "recall": round(recall_score(y, p, zero_division=0), 4),
+            "f1_macro": round(f1_score(y, p, average="macro", zero_division=0), 4),
+            "precision_macro": round(precision_score(y, p, average="macro", zero_division=0), 4),
+            "recall_macro": round(recall_score(y, p, average="macro", zero_division=0), 4),
         }
-        row["roc_auc"] = round(roc_auc_score(y, s), 4) if len(set(y)) > 1 else None
         rows.append(row)
     return sorted(rows, key=lambda item: item["n"], reverse=True)
 
@@ -177,10 +229,9 @@ def save_results_bundle(summary: Dict[str, Any], results_dir: Path) -> None:
         "# Training Results",
         "",
         f"- generated_at: {summary.get('generated_at', '')}",
-        f"- threshold: {summary.get('threshold', '')}",
-        f"- train_neg: {summary.get('class_balance', {}).get('neg', '')}",
-        f"- train_pos: {summary.get('class_balance', {}).get('pos', '')}",
-        f"- scale_pos_weight: {summary.get('class_balance', {}).get('scale_pos_weight', '')}",
+        f"- classification_mode: {summary.get('classification_mode', 'binary')}",
+        f"- primary_metric: {summary.get('primary_metric', '')}",
+        f"- class_balance: {summary.get('class_balance', {})}",
         "",
     ]
 
@@ -191,15 +242,14 @@ def save_results_bundle(summary: Dict[str, Any], results_dir: Path) -> None:
             markdown_lines.extend([
                 f"### {split_name}",
                 "",
-                f"- tp: {metrics.get('tp', '')}",
-                f"- tn: {metrics.get('tn', '')}",
-                f"- fp: {metrics.get('fp', '')}",
-                f"- fn: {metrics.get('fn', '')}",
-                f"- f1: {metrics.get('f1', '')}",
                 f"- accuracy: {metrics.get('accuracy', '')}",
-                f"- precision: {metrics.get('precision', '')}",
-                f"- recall: {metrics.get('recall', '')}",
-                f"- roc_auc: {metrics.get('roc_auc', 'N/A')}",
+                f"- f1_macro: {metrics.get('f1_macro', metrics.get('f1', ''))}",
+                f"- precision_macro: {metrics.get('precision_macro', metrics.get('precision', ''))}",
+                f"- recall_macro: {metrics.get('recall_macro', metrics.get('recall', ''))}",
+                f"- roc_auc: {metrics.get('roc_auc_ovr', metrics.get('roc_auc', 'N/A'))}",
+                f"- ham_f1: {metrics.get('ham_f1', '')}",
+                f"- spam_f1: {metrics.get('spam_f1', '')}",
+                f"- phishing_f1: {metrics.get('phishing_f1', '')}",
                 "",
             ])
 
@@ -232,7 +282,7 @@ def train_logistic_regression(X_train, y_train, Cs=5, cv: int = 5, max_iter: int
         random_state=random_state,
         class_weight="balanced",
         solver="saga",
-        scoring="f1",
+        scoring="f1_macro" if len(set(y_train)) > 2 else "f1",
         n_jobs=-1,
         refit=True,
     )
@@ -379,6 +429,9 @@ if __name__ == "__main__":
     train_df["text_combined"] = build_model_text_dataframe(train_df)
     val_df["text_combined"] = build_model_text_dataframe(val_df)
     test_df["text_combined"] = build_model_text_dataframe(test_df)
+    train_df["target"] = build_multiclass_target(train_df)
+    val_df["target"] = build_multiclass_target(val_df)
+    test_df["target"] = build_multiclass_target(test_df)
 
     include_rule_features = bool(config.get("model_features", {}).get("include_rule_features", False))
     if include_rule_features:
@@ -391,14 +444,12 @@ if __name__ == "__main__":
 
     logger.info("Building feature matrices...")
     X_train, X_val, X_test, extractor = prepare_features(train_df, val_df, test_df, config)
-    y_train = train_df["label"].values
-    y_val = val_df["label"].values
-    y_test = test_df["label"].values
+    y_train = train_df["target"].values
+    y_val = val_df["target"].values
+    y_test = test_df["target"].values
 
-    pos_count = max(1, int((y_train == 1).sum()))
-    neg_count = max(1, int((y_train == 0).sum()))
-    auto_scale_pos_weight = round(neg_count / pos_count, 4)
-    logger.info(f"Class balance (train): neg={neg_count}, pos={pos_count}, auto_scale_pos_weight={auto_scale_pos_weight}")
+    balance = class_balance_summary(y_train)
+    logger.info(f"Class balance (train): {balance}")
 
     lr_cfg = config.get("models", {}).get("logistic_regression", {})
     lr_model = train_logistic_regression(
@@ -409,12 +460,12 @@ if __name__ == "__main__":
         max_iter=int(lr_cfg.get("max_iter", 1000)),
         random_state=config["data"]["random_seed"],
     )
-    lr_threshold = find_best_threshold(lr_model, X_val, y_val, metric=primary_metric)["threshold"]
-    logger.info(f"LogisticRegressionCV best validation threshold={lr_threshold}")
-    lr_val_metrics = evaluate_model(lr_model, X_val, y_val, threshold=lr_threshold, model_name="LogisticRegressionCV [val]")
-    lr_test_metrics = evaluate_model(lr_model, X_test, y_test, threshold=lr_threshold, model_name="LogisticRegressionCV [test]")
-    lr_val_by_source = evaluate_by_column(lr_model, X_val, val_df, "source", threshold=lr_threshold)
-    lr_test_by_source = evaluate_by_column(lr_model, X_test, test_df, "source", threshold=lr_threshold)
+    lr_threshold = default_threshold
+    logger.info("LogisticRegressionCV uses argmax over ham/spam/phishing probabilities.")
+    lr_val_metrics = evaluate_model(lr_model, X_val, y_val, threshold=lr_threshold, model_name="LogisticRegressionCV [val]", class_names=CLASS_NAMES)
+    lr_test_metrics = evaluate_model(lr_model, X_test, y_test, threshold=lr_threshold, model_name="LogisticRegressionCV [test]", class_names=CLASS_NAMES)
+    lr_val_by_source = evaluate_by_column(lr_model, X_val, val_df, "source", threshold=lr_threshold, class_names=CLASS_NAMES)
+    lr_test_by_source = evaluate_by_column(lr_model, X_test, test_df, "source", threshold=lr_threshold, class_names=CLASS_NAMES)
     save_model(lr_model, str(models_dir / "lr_model.pkl"))
     save_metrics(lr_val_metrics, str(reports_dir / "lr_val_metrics.json"))
     save_metrics(lr_test_metrics, str(reports_dir / "lr_test_metrics.json"))
@@ -426,6 +477,7 @@ if __name__ == "__main__":
     xgb_test_metrics = {}
     xgb_threshold = default_threshold
     try:
+        raise RuntimeError("XGBoost training is skipped for the 3-class production target; LogisticRegressionCV is the active calibrated model.")
         xgb_model = train_xgboost(
             X_train,
             y_train,
@@ -438,14 +490,14 @@ if __name__ == "__main__":
             colsample_bytree=float(xgb_cfg.get("colsample_bytree", 0.8)),
             early_stopping_rounds=20,
             random_state=config["data"]["random_seed"],
-            scale_pos_weight=auto_scale_pos_weight,
+            scale_pos_weight=1.0,
             device=str(xgb_cfg.get("device", "cpu")),
             tree_method=str(xgb_cfg.get("tree_method", "hist")),
         )
-        xgb_threshold = find_best_threshold(xgb_model, X_val, y_val, metric=primary_metric)["threshold"]
+        xgb_threshold = default_threshold
         logger.info(f"XGBoost best validation threshold={xgb_threshold}")
-        xgb_val_metrics = evaluate_model(xgb_model, X_val, y_val, threshold=xgb_threshold, model_name="XGBoost [val]")
-        xgb_test_metrics = evaluate_model(xgb_model, X_test, y_test, threshold=xgb_threshold, model_name="XGBoost [test]")
+        xgb_val_metrics = evaluate_model(xgb_model, X_val, y_val, threshold=xgb_threshold, model_name="XGBoost [val]", class_names=CLASS_NAMES)
+        xgb_test_metrics = evaluate_model(xgb_model, X_test, y_test, threshold=xgb_threshold, model_name="XGBoost [test]", class_names=CLASS_NAMES)
         save_model(xgb_model, str(models_dir / "xgboost_model.pkl"))
         save_metrics(xgb_val_metrics, str(reports_dir / "xgb_val_metrics.json"))
         save_metrics(xgb_test_metrics, str(reports_dir / "xgb_test_metrics.json"))
@@ -460,7 +512,9 @@ if __name__ == "__main__":
             "include_rule_features": include_rule_features,
             "text_fields": ["subject", "body", "sender", "sender_domain", "reply_to", "reply_to_domain", "urls", "attachments"],
         },
-        "class_balance": {"neg": neg_count, "pos": pos_count, "scale_pos_weight": auto_scale_pos_weight},
+        "classification_mode": "multiclass",
+        "class_names": CLASS_NAMES,
+        "class_balance": balance,
         "models": {
             "logistic_regression": {"val": lr_val_metrics, "test": lr_test_metrics},
             "xgboost": {"val": xgb_val_metrics, "test": xgb_test_metrics},
@@ -474,6 +528,10 @@ if __name__ == "__main__":
         "generated_at": summary["generated_at"],
         "primary_metric": primary_metric,
         "default_threshold": default_threshold,
+        "classification_mode": "multiclass",
+        "class_names": CLASS_NAMES,
+        "class_labels": CLASS_LABELS,
+        "phishing_severity_thresholds": {"low": 0.4, "medium": 0.65, "high": 0.85},
         "models": {
             "lr": {"threshold": lr_threshold, "val": lr_val_metrics, "test": lr_test_metrics},
             "logistic_regression": {"threshold": lr_threshold, "val": lr_val_metrics, "test": lr_test_metrics},

@@ -224,14 +224,14 @@ augmentation:
 
 # --- 평가 설정 ---
 evaluation:
-  primary_metric: "f1"       # 주요 평가지표
+  primary_metric: "f1_macro" # 3-class에서 정상/스팸/피싱을 균형 있게 평가
   threshold: 0.5             # 분류 임계값 (Recall 우선이면 낮춤)
   cv_folds: 5
 
 # --- Streamlit 앱 설정 ---
 app:
   title: "피싱 이메일 탐지 시스템"
-  model_to_use: "xgboost"    # "random_forest" 또는 "xgboost"
+  model_to_use: "lr"         # 운영 기본값: 3-class LogisticRegressionCV
   show_shap: true
   show_rule_explanation: true
   show_keyword_highlight: true

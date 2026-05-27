@@ -14,7 +14,7 @@ from src.explainability.rule_explainer import generate_rule_explanation
 from src.features.model_text import build_model_text_record
 from src.features.rule_features import add_rule_features, extract_rule_features
 from src.features.text_features import TextFeatureExtractor
-from src.models.baseline import find_best_threshold
+from src.models.baseline import build_multiclass_target, find_best_threshold
 
 
 class TestPipelineSmoke(unittest.TestCase):
@@ -198,10 +198,23 @@ class TestPipelineSmoke(unittest.TestCase):
         self.assertEqual(feats["has_http_url"], 1)
 
         result = predict_email(payload)
-        self.assertIn(result["verdict"], {"phishing", "legit"})
+        self.assertIn(result["verdict"], {"phishing", "spam", "legit"})
         self.assertIn("confidence", result)
+        self.assertIn("class_probabilities", result)
+        self.assertIn("phishing_score", result)
+        self.assertIn("spam_score", result)
         self.assertEqual(result["attachment_count"], 1)
         self.assertEqual(result["provider"], "gmail")
+
+    def test_multiclass_target_keeps_spam_separate_from_phishing(self):
+        df = pd.DataFrame([
+            {"label_type": "ham", "label": 0},
+            {"label_type": "spam", "label": 1},
+            {"label_type": "phishing", "label": 1},
+            {"label_type": "fraud", "label": 1},
+        ])
+
+        self.assertEqual(build_multiclass_target(df).tolist(), [0, 1, 2, 2])
 
     def test_text_features_fit_transform(self):
         base_df = pd.DataFrame([

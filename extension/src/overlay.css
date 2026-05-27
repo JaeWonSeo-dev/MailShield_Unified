@@ -18,9 +18,13 @@
 }
 
 .mailshield-safe { border-left: 5px solid #2fbf71; }
-.mailshield-caution { border-left: 5px solid #ffb020; }
-.mailshield-suspicious { border-left: 5px solid #ff6b35; }
-.mailshield-high-risk { border-left: 5px solid #e63946; }
+.mailshield-spam { border-left: 5px solid #64748b; }
+.mailshield-caution,
+.mailshield-phishing-low { border-left: 5px solid #facc15; }
+.mailshield-suspicious,
+.mailshield-phishing-medium { border-left: 5px solid #f97316; }
+.mailshield-high-risk,
+.mailshield-phishing-high { border-left: 5px solid #dc2626; }
 
 .mailshield-header {
   display: flex;

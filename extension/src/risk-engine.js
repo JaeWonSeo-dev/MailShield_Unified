@@ -132,7 +132,7 @@ function analyzeMailContext(context) {
   score += linkOnlyLure * 1.8;
 
   const probability = Math.min(Math.round((score / 12) * 100), 99);
-  const level = probability >= 75 ? "high-risk" : probability >= 50 ? "suspicious" : probability >= 25 ? "caution" : "safe";
+  const level = probability >= 75 ? "phishing-high" : probability >= 50 ? "phishing-medium" : probability >= 25 ? "phishing-low" : "safe";
   const label = probability >= 50 ? 1 : 0;
   const verdict = label ? "phishing" : "legit";
 
@@ -177,7 +177,15 @@ function analyzeMailContext(context) {
   return {
     label,
     verdict,
+    classification: verdict,
     score: probability,
+    phishing_score: probability,
+    spam_score: 0,
+    class_probabilities: {
+      ham: 100 - probability,
+      spam: 0,
+      phishing: probability,
+    },
     confidence: probability / 100,
     level,
     reasons: dedupe(reasons).slice(0, 6),

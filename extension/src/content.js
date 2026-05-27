@@ -231,6 +231,10 @@ function mergeResults(local, remote) {
       label: remote.label ?? local.label ?? 0,
       verdict: remote.verdict || local.verdict || 'legit',
       score: remote.score ?? local.score ?? 0,
+      phishing_score: remote.phishing_score ?? local.phishing_score ?? remote.score ?? local.score ?? 0,
+      spam_score: remote.spam_score ?? local.spam_score ?? 0,
+      classification: remote.classification || local.classification || remote.verdict || local.verdict || 'legit',
+      class_probabilities: remote.class_probabilities || local.class_probabilities || undefined,
       confidence: remote.confidence ?? local.confidence ?? ((remote.score ?? local.score ?? 0) / 100),
       level: strongerLevel(local.level, remote.level),
       reasons: [...new Set([...(remote.reasons || []), ...(local.reasons || [])])].slice(0, 6),
@@ -244,6 +248,10 @@ function mergeResults(local, remote) {
     label: remote.label ?? local.label ?? 0,
     verdict: remote.verdict || local.verdict || 'legit',
     score: remote.score ?? local.score ?? 0,
+    phishing_score: remote.phishing_score ?? local.phishing_score ?? remote.score ?? local.score ?? 0,
+    spam_score: remote.spam_score ?? local.spam_score ?? 0,
+    classification: remote.classification || local.classification || remote.verdict || local.verdict || 'legit',
+    class_probabilities: remote.class_probabilities || local.class_probabilities || undefined,
     confidence: remote.confidence ?? local.confidence ?? ((remote.score ?? local.score ?? 0) / 100),
     level: remote.level || strongerLevel(local.level, remote.level),
     reasons: [...new Set([...(remote.reasons || []), ...(local.reasons || [])])].slice(0, 6),
@@ -254,7 +262,7 @@ function mergeResults(local, remote) {
 }
 
 function strongerLevel(a, b) {
-  const order = ['safe', 'caution', 'suspicious', 'high-risk'];
+  const order = ['safe', 'spam', 'phishing-low', 'caution', 'phishing-medium', 'suspicious', 'phishing-high', 'high-risk'];
   return order[Math.max(order.indexOf(a || 'safe'), order.indexOf(b || 'safe'))];
 }
 
@@ -266,18 +274,19 @@ function renderOverlay(result, context, options = {}) {
     document.documentElement.appendChild(root);
   }
 
-  const badge = badgeFor(result.level);
+  const normalized = normalizeResult(result);
+  const badge = badgeFor(normalized.level, normalized.verdict);
   const topLinks = (context.links || []).slice(0, 3);
   const attachments = (context.attachments || []).slice(0, 3);
-  const verdict = result.verdict === 'phishing' || result.label === 1 ? '피싱 메일 가능성 높음' : '정상 메일 가능성 높음';
-  const confidence = Math.round((result.confidence ?? (result.score || 0) / 100) * 100);
+  const confidence = Math.round((normalized.confidence ?? (normalized.score || 0) / 100) * 100);
+  const scoreLine = formatScoreLine(normalized);
 
   root.innerHTML = `
-    <div class="mailshield-card mailshield-${result.level}">
+    <div class="mailshield-card mailshield-${normalized.level}">
       <div class="mailshield-header">
         <div>
           <div class="mailshield-title">PhishingMail Detection</div>
-          <div class="mailshield-subtitle">${badge.label} · ${verdict} · score ${result.score} · confidence ${confidence}%</div>
+          <div class="mailshield-subtitle">${badge.label} · ${scoreLine} · confidence ${confidence}%</div>
         </div>
         <div class="mailshield-badge">${badge.emoji}</div>
       </div>
@@ -293,7 +302,7 @@ function renderOverlay(result, context, options = {}) {
       ${attachments.length ? `<div class="mailshield-section"><strong>첨부</strong><br>${attachments.map((name) => `<div class="mailshield-mini">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
       <div class="mailshield-section"><strong>근거</strong>
         <ul>
-          ${result.reasons.length ? result.reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('') : '<li>즉시 의심되는 신호는 적습니다.</li>'}
+          ${normalized.reasons.length ? normalized.reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('') : '<li>즉시 의심되는 피싱 신호는 적습니다.</li>'}
         </ul>
       </div>
       ${options.debug ? renderDebug(context) : ''}
@@ -377,12 +386,44 @@ function formatSender(context) {
   return `${name || email || '(확인 실패)'}${replyTo}`;
 }
 
-function badgeFor(level) {
+function normalizeResult(result = {}) {
+  const verdict = result.classification || result.verdict || (result.label === 2 ? 'phishing' : result.label === 1 ? 'spam' : 'legit');
+  let level = result.level || 'safe';
+  if (level === 'high-risk') level = 'phishing-high';
+  if (level === 'suspicious') level = 'phishing-medium';
+  if (level === 'caution' && verdict === 'phishing') level = 'phishing-low';
+  if (verdict === 'spam') level = 'spam';
+  if (verdict === 'legit' || verdict === 'ham') level = 'safe';
+  return {
+    ...result,
+    verdict: verdict === 'ham' ? 'legit' : verdict,
+    level,
+    phishing_score: result.phishing_score ?? result.score ?? 0,
+    spam_score: result.spam_score ?? 0,
+    reasons: result.reasons || [],
+  };
+}
+
+function formatScoreLine(result) {
+  if (result.verdict === 'phishing') {
+    return `피싱 메일 · 피싱 점수 ${result.phishing_score}`;
+  }
+  if (result.verdict === 'spam') {
+    return `스팸 메일 · 스팸 점수 ${result.spam_score} · 피싱 점수 ${result.phishing_score}`;
+  }
+  return `정상 메일 · 피싱 점수 ${result.phishing_score}`;
+}
+
+function badgeFor(level, verdict) {
+  if (verdict === 'spam' || level === 'spam') return { label: '스팸', emoji: 'AD' };
   switch (level) {
-    case 'high-risk': return { label: '고위험', emoji: '⛔' };
-    case 'suspicious': return { label: '피싱 의심', emoji: '⚠️' };
-    case 'caution': return { label: '주의', emoji: '👀' };
-    default: return { label: '대체로 정상', emoji: '✅' };
+    case 'phishing-high':
+    case 'high-risk': return { label: '피싱 강도 높음', emoji: '!!' };
+    case 'phishing-medium':
+    case 'suspicious': return { label: '피싱 강도 중간', emoji: '!' };
+    case 'phishing-low':
+    case 'caution': return { label: '피싱 강도 낮음', emoji: '?' };
+    default: return { label: '정상', emoji: 'OK' };
   }
 }
 

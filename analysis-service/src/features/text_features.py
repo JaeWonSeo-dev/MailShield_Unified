@@ -69,7 +69,8 @@ class TextFeatureExtractor:
         logger.info("Fitting TF-IDF vectorizer...")
         X_tfidf = self.tfidf.fit_transform(df["text_combined"].fillna(""))
         logger.info(f"TF-IDF shape: {X_tfidf.shape}")
-        X_tfidf = self._fit_select_tfidf(X_tfidf, df["label"].values if "label" in df.columns else None)
+        target_column = "target" if "target" in df.columns else "label"
+        X_tfidf = self._fit_select_tfidf(X_tfidf, df[target_column].values if target_column in df.columns else None)
 
         if self.include_rule_features:
             X_rule = self._get_rule_matrix(df, fit=True)

@@ -1,23 +1,36 @@
 {
-  "threshold": 0.53,
-  "accuracy": 0.981,
-  "f1": 0.9818,
-  "precision": 0.982,
-  "recall": 0.9816,
-  "tp": 29023,
-  "tn": 26630,
-  "fp": 532,
-  "fn": 545,
+  "threshold": 0.5,
+  "accuracy": 0.9359,
+  "f1_macro": 0.911,
+  "f1_weighted": 0.9364,
+  "precision_macro": 0.9057,
+  "recall_macro": 0.9169,
   "conf_matrix": [
     [
-      26630,
-      532
+      26548,
+      523,
+      91
     ],
     [
-      545,
-      29023
+      342,
+      19612,
+      1576
+    ],
+    [
+      44,
+      1061,
+      6933
     ]
   ],
-  "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.98      0.98      0.98     27162\n      threat       0.98      0.98      0.98     29568\n\n    accuracy                           0.98     56730\n   macro avg       0.98      0.98      0.98     56730\nweighted avg       0.98      0.98      0.98     56730\n",
-  "roc_auc": 0.9981
+  "classification_report": "              precision    recall  f1-score   support\n\n         ham       0.99      0.98      0.98     27162\n        spam       0.93      0.91      0.92     21530\n    phishing       0.81      0.86      0.83      8038\n\n    accuracy                           0.94     56730\n   macro avg       0.91      0.92      0.91     56730\nweighted avg       0.94      0.94      0.94     56730\n",
+  "roc_auc_ovr": 0.9883,
+  "ham_f1": 0.9815,
+  "ham_precision": 0.9857,
+  "ham_recall": 0.9774,
+  "spam_f1": 0.918,
+  "spam_precision": 0.9253,
+  "spam_recall": 0.9109,
+  "phishing_f1": 0.8334,
+  "phishing_precision": 0.8062,
+  "phishing_recall": 0.8625
 }

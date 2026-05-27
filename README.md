@@ -1,19 +1,20 @@
 # MailShield Unified
 
-MailShield Unified는 Gmail과 Outlook Web에서 열람 중인 메일을 수집해 피싱 위험도를 실시간으로 분석하는 Chrome Extension 기반 피싱 메일 탐지 프로젝트입니다.
+MailShield Unified는 Gmail과 Outlook Web에서 열람 중인 메일을 수집해 정상 메일, 스팸 메일, 피싱 메일을 실시간으로 분류하는 Chrome Extension 기반 메일 보안 프로젝트입니다.
 
-확장 프로그램은 사용자가 메일을 열었을 때 제목, 발신자, Reply-To, 본문, 링크, 첨부 정보를 브라우저 화면에서 추출하고, 로컬 분석 API는 학습된 머신러닝 모델로 피싱 가능성을 0-100점 위험 점수와 판정 결과로 반환합니다.
+확장 프로그램은 사용자가 메일을 열었을 때 제목, 발신자, Reply-To, 본문, 링크, 첨부 정보를 브라우저 화면에서 추출하고, 로컬 분석 API는 학습된 머신러닝 모델로 세 클래스 확률과 피싱 점수를 반환합니다. 스팸은 피싱과 분리해 판단하며, 피싱으로 분류될 때만 피싱 강도와 근거를 강조합니다.
 
 ## Features
 
 - Gmail, Outlook Web 메일 열람 화면 자동 감지
 - 제목, 발신자, Reply-To, 본문, 링크, 첨부명 수집
-- 로컬 ML API 기반 피싱 확률 분석
-- 위험 점수, confidence, 판정 근거, 수집 범위 오버레이 표시
+- 로컬 ML API 기반 정상/스팸/피싱 3-class 분류
+- 피싱 점수, 스팸 점수, confidence, 판정 근거, 수집 범위 오버레이 표시
+- 정상은 초록색, 스팸은 중립색, 피싱은 강도에 따라 노랑/주황/빨강으로 표시
 - API 장애 시 확장 내부 rule fallback 엔진으로 기본 분석 유지
 - 공개 피싱/스팸/정상 메일 데이터셋 다운로드 및 재학습 지원
 - 룰 점수에 의존하지 않는 text-only 학습 파이프라인
-- validation set 기반 threshold 자동 선택
+- content group split 기반 train/validation/test 누수 방지
 
 ## Architecture
 
@@ -45,12 +46,12 @@ MailShield_Unified/
 1. 사용자가 Gmail 또는 Outlook Web에서 메일을 엽니다.
 2. Chrome Extension content script가 메일 DOM에서 분석 문맥을 수집합니다.
 3. background service worker가 `http://127.0.0.1:8765/analyze`로 분석 요청을 보냅니다.
-4. ML API가 학습된 모델과 feature extractor로 피싱 확률을 계산합니다.
-5. 확장 프로그램이 위험 점수, 판정, confidence, 주요 근거를 오버레이로 표시합니다.
+4. ML API가 학습된 모델과 feature extractor로 정상/스팸/피싱 확률을 계산합니다.
+5. 확장 프로그램이 판정, 피싱 점수, 스팸 점수, confidence, 주요 근거를 오버레이로 표시합니다.
 
 ## Model
 
-현재 기본 운영 모델은 `LogisticRegressionCV`입니다. Chrome Extension에서 점수화가 필요하므로 확률 출력이 안정적이고 추론 속도가 빠른 모델을 우선 선택했습니다.
+현재 기본 운영 모델은 `LogisticRegressionCV` 기반 3-class 분류기입니다. Chrome Extension에서 점수화가 필요하므로 확률 출력이 안정적이고 추론 속도가 빠른 모델을 우선 선택했습니다.
 
 학습 입력은 사람이 작성한 룰 점수가 아니라 메일에서 관찰된 필드입니다.
 
@@ -71,8 +72,9 @@ Feature selection은 `Chi-square SelectKBest`를 사용합니다.
 - Feature selection: `chi2`, `k=30000`
 - Rule numeric features: disabled
 - Data augmentation: disabled
-- Threshold selection: validation F1 기준 자동 탐색
-- Active threshold: `0.53`
+- Classification mode: `ham`, `spam`, `phishing`
+- Decision rule: 세 클래스 확률 중 argmax
+- Phishing severity: 낮음/중간/높음 색상 단계
 
 ## Dataset
 
@@ -95,16 +97,33 @@ Feature selection은 `Chi-square SelectKBest`를 사용합니다.
 | Validation | 57,320 |
 | Test | 56,730 |
 
+Train label distribution:
+
+| Class | Count |
+| --- | ---: |
+| Ham | 124,697 |
+| Spam | 102,101 |
+| Phishing | 35,716 |
+| Fraud mapped to phishing | 2,335 |
+
 최근 평가 결과:
 
 | Metric | Score |
 | --- | ---: |
-| Accuracy | 0.9810 |
-| F1 | 0.9818 |
-| Precision | 0.9820 |
-| Recall | 0.9816 |
-| ROC-AUC | 0.9981 |
-| Threshold | 0.53 |
+| Accuracy | 0.9359 |
+| Macro F1 | 0.9110 |
+| Weighted F1 | 0.9364 |
+| Macro Precision | 0.9057 |
+| Macro Recall | 0.9169 |
+| ROC-AUC OVR | 0.9883 |
+
+Class-level test result:
+
+| Class | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: |
+| Ham | 0.99 | 0.98 | 0.98 |
+| Spam | 0.93 | 0.91 | 0.92 |
+| Phishing | 0.81 | 0.86 | 0.83 |
 
 평가는 content group split을 사용해 같은 정규화 메일 본문이 train, validation, test에 동시에 들어가지 않도록 구성합니다. 이 방식은 랜덤 split보다 점수가 낮아질 수 있지만, 실제 신규 메일에 대한 일반화 성능을 더 보수적으로 추정합니다.
 
@@ -120,7 +139,7 @@ macOS에서 XGBoost를 사용하려면 OpenMP 런타임이 필요할 수 있습�
 brew install libomp
 ```
 
-XGBoost가 로드되지 않아도 API는 `LogisticRegressionCV` 모델로 자동 fallback됩니다.
+현재 운영 기본값은 `lr`입니다. XGBoost는 macOS OpenMP 환경에 따라 로드가 실패할 수 있어 선택 모델로만 남겨두었습니다.
 
 ## Setup
 
@@ -233,9 +252,17 @@ Example response:
 {
   "label": 1,
   "verdict": "phishing",
-  "score": 99.8,
-  "confidence": 0.998,
-  "level": "high-risk",
+  "classification": "phishing",
+  "score": 92.4,
+  "phishing_score": 92.4,
+  "spam_score": 7.5,
+  "confidence": 0.924,
+  "level": "phishing-high",
+  "class_probabilities": {
+    "ham": 0.1,
+    "spam": 7.5,
+    "phishing": 92.4
+  },
   "mode": "ml-api",
   "model": "lr",
   "reasons": [
